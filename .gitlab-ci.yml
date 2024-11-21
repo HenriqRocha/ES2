@@ -1,14 +1,15 @@
- variables:
-  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
-  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
- 
- before_script:
- - apt-get update -qy
- - apt-get install -y ruby-dev
- - gem install dpl
- 
- sonarcloud-check:
-  image: maven:3.6.3-jdk-11
+stages:
+  - check
+  - build
+  - deploy
+
+variables:
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  GIT_DEPTH: "0"
+
+sonar-check:
+  stage: check
+  image: maven:3.8.3-openjdk-17
   cache:
     key: "${CI_JOB_NAME}"
     paths:
@@ -16,13 +17,26 @@
   script:
     - mvn verify sonar:sonar
   only:
-    - merge_requests
-    - master
-    - develop
- 
- deploy:
-  image: ruby:latest
+    - main
+
+build:
+  stage: build
+  image: maven:3.8.3-openjdk-17
+  artifacts:
+    paths:
+      - target/
   script:
-   - dpl --provider=heroku --app=$HEROKU_APP --api-key=$HEROKU_API_KEY
+    - mvn clean verify -Dsonar.skip=true -DskipTests=true install
   only:
-   - main
+    - main
+
+aws-deploy:
+  stage: deploy
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+   - aws deploy push --application-name unirio-pm-projetos-base --s3-location s3://unirio-pm-projetos-base/projeto-base-spring-boot.zip --source .
+   - aws deploy create-deployment --application-name unirio-pm-projetos-base --deployment-group-name projeto-base-spring-boot --s3-location bucket=unirio-pm-projetos-base,key=projeto-base-spring-boot.zip,bundleType=zip
+  only:
+    - main
+  dependencies: 
+    - build

@@ -1,75 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion> 
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.5</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>Echo</artifactId>
-	<version>1.0</version>
-	<name>Echo</name>
-	<description>Echo Project</description>
-	
-	<properties>
-	    <sonar.projectKey>projeto-base-pm-unirio-echo-com-spring-boot</sonar.projectKey>
-        <sonar.organization>unirio-pm</sonar.organization>
-    </properties>
-	
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>2.5.5</version>
+    <relativePath /> <!-- lookup parent from repository -->
+  </parent>
+  <groupId>unirio.pm</groupId>
+  <artifactId>projeto-base-spring-boot</artifactId>
+  <version>1.0</version>
+  <name>projeto-base-spring-boot</name>
+  <description>Template de projeto com Spring Boot, integrado com SonarCloud e AWS EC2</description>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		
-		<!-- Dependências do Swagger-->
-		<dependency>
-		    <groupId>io.springfox</groupId>
-		    <artifactId>springfox-swagger2</artifactId>
-		    <version>2.7.0</version>
-		</dependency>
-		<dependency>
-		    <groupId>io.springfox</groupId>
-		    <artifactId>springfox-swagger-ui</artifactId>
-		    <version>2.7.0</version>
-		</dependency>
-	</dependencies>
+  <properties>
+    <sonar.organization>pedroclain</sonar.organization>
+    <sonar.projectKey>pedroclain_projeto-base-programacao-modular-unirio-echo-com-spring-boot</sonar.projectKey>
+  </properties>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-			<!-- Plugin para implantação no Heroku-->
-			<plugin>
-		        <groupId>com.heroku.sdk</groupId>
-		        <artifactId>heroku-maven-plugin</artifactId>
-		        <version>3.0.3</version>
-		        <configuration>
-		            <appName>app-echo</appName>
-		            <processTypes>
-		                <!-- Tell Heroku how to launch your application -->
-		                <web>web: java $JAVA_OPTS -cp target/classes:target/dependency/* EchoApplication</web>
-		            </processTypes>
-		        </configuration>
-    		</plugin> 
-		</plugins>
-	</build>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-devtools</artifactId>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
+  <build>
+    <finalName>${project.name}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.10</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>3.10.0.2594</version>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>sonar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin> 
+    </plugins>
+  </build>
 </project>

@@ -1,0 +1,21 @@
+version: 0.0
+os: linux
+files:
+  - source: /target/projeto-base-spring-boot.jar
+    destination: /opt
+
+hooks:
+  BeforeInstall:
+    - location: scripts/before-install.sh
+      timeout: 3000
+      runas: ec2-user
+
+  AfterInstall:
+    - location: scripts/after-install.sh
+      timeout: 3000
+      runas: ec2-user
+
+  ApplicationStart:
+    - location: scripts/application-start.sh
+      timeout: 3000
+      runas: ec2-user
