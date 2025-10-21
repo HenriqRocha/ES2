@@ -23,17 +23,11 @@ jobs:
           java-version: '20'
           distribution: 'temurin'
 
-      #rodar package
-      - name: 3. Build e Teste (Maven)
-        run: mvn -B package --file pom.xml
-
-      #sonar
-      - name: 4. Análise SonarCloud
-        uses: SonarSource/sonarcloud-github-action@master
+      #construir testar e analisar com o sonar
+      - name: 3. Build, Teste e Análise Sonar (Maven)
+        run: mvn -B verify package sonar:sonar -Dsonar.organization=henriqrocha -Dsonar.projectKey=HenriqRocha_ES2
         env:
+          # O GITHUB_TOKEN é usado pelo Sonar para decorar Pull Requests
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # O SONAR_TOKEN é a "senha" para enviar a análise ao SonarCloud
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.organization=henriqrocha
-            -Dsonar.projectKey=HenriqRocha_ES2
