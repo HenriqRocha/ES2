@@ -16,8 +16,8 @@
   <description>Template de projeto com Spring Boot, integrado com SonarCloud e AWS EC2</description>
 
   <properties>
-    <sonar.organization>pedroclain</sonar.organization>
-    <sonar.projectKey>pedroclain_projeto-base-programacao-modular-unirio-echo-com-spring-boot</sonar.projectKey>
+    <sonar.organization>Henrique Rocha de Araujo Miranda</sonar.organization>
+    <sonar.projectKey>henriqrocha</sonar.projectKey>
   </properties>
 
   <dependencies>
