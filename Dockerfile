@@ -1,6 +1,6 @@
 # --- Estágio 1: Construir o projeto ---
-# Usamos uma imagem que já tem Maven e Java 20 (LINHA CORRIGIDA)
-FROM maven:3.9.7-eclipse-temurin-20 AS build
+# Usamos uma imagem estável com Maven e Java 21 (LTS)
+FROM maven:3.9.7-eclipse-temurin-21 AS build
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
@@ -14,8 +14,8 @@ COPY src ./src
 RUN mvn -B package -DskipTests
 
 # --- Estágio 2: Executar o projeto ---
-# Usamos uma imagem leve, apenas com Java 20
-FROM eclipse-temurin:20-jre
+# Usamos uma imagem leve, apenas com Java 21 (LTS)
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
