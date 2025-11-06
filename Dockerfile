@@ -1,6 +1,6 @@
 # --- Estágio 1: Construir o projeto ---
-# Usamos uma imagem que já tem Maven e Java 20
-FROM maven:3.9.6-eclipse-temurin-20 AS build
+# Usamos uma imagem que já tem Maven e Java 20 (LINHA CORRIGIDA)
+FROM maven:3.9.7-eclipse-temurin-20 AS build
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
