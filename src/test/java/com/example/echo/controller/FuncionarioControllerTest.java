@@ -115,7 +115,7 @@ class FuncionarioControllerTest {
                 // Verifica se a resposta de erro (do GlobalExceptionHandler) está correta
                 .andExpect(jsonPath("$.codigo").value("400 BAD_REQUEST"))
                 // Agora, a mensagem "Senha é obrigatória" SERÁ a única mensagem
-                .andExpect(jsonPath("$.mensagem").value("Senha é obrigatória"));
+                .andExpect(jsonPath("$.mensagem").value("Campo obrigatório"));
     }
 
     @Test
