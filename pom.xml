@@ -18,6 +18,7 @@
   <properties>
     <sonar.organization>Henrique Rocha de Araujo Miranda</sonar.organization>
     <sonar.projectKey>henriqrocha</sonar.projectKey>
+    <sonar.duplication.threshold>1.0</sonar.duplication.threshold>
   </properties>
 
   <dependencies>

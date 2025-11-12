@@ -1,11 +1,6 @@
 package com.example.echo.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.LocalDate;
 @Entity
 @Table(name = "tb_cartao_de_credito")
@@ -17,7 +12,7 @@ public class CartaoDeCredito {
     @Column(nullable = false)
     private String nomeTitular;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String numero;
 
     @Column(nullable = false)
@@ -25,6 +20,9 @@ public class CartaoDeCredito {
 
     @Column(nullable = false)
     private String cvv;
+
+    @OneToOne(mappedBy = "cartaoDeCredito")
+    private Ciclista ciclista;
 
     public CartaoDeCredito() {
     }
@@ -68,5 +66,13 @@ public class CartaoDeCredito {
 
     public void setCvv(String cvv) {
         this.cvv = cvv;
+    }
+
+    public Ciclista getCiclista() {
+        return ciclista;
+    }
+
+    public void setCiclista(Ciclista ciclista) {
+        this.ciclista = ciclista;
     }
 }

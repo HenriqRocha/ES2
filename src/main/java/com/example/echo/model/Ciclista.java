@@ -14,6 +14,8 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "tb_ciclista")
 public class Ciclista {
@@ -49,6 +51,9 @@ public class Ciclista {
 
     @Column(nullable = false)
     private String senha;
+
+    @Column(name = "data_confirmacao")
+    private LocalDateTime dataConfirmacao;
 
     //relaçao ciclista-cartao
     @OneToOne(cascade = CascadeType.ALL)
@@ -153,5 +158,17 @@ public class Ciclista {
     public void setSenha(String senha) {
         this.senha = senha;
     }
+
+    public CartaoDeCredito getCartaoDeCredito() {
+        return cartaoDeCredito;
+    }
+
+    public void setCartaoDeCredito(CartaoDeCredito cartaoDeCredito) {
+        this.cartaoDeCredito = cartaoDeCredito;
+    }
+
+    public void setDataConfirmacao(LocalDateTime dataConfirmacao){this.dataConfirmacao = dataConfirmacao;}
+
+    public LocalDateTime getDataConfirmacao(){return dataConfirmacao;}
 
 }

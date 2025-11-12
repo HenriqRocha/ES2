@@ -27,7 +27,7 @@ public class NovoFuncionarioDTO {
     private FuncaoFuncionario funcao;
 
     @NotBlank(message = "Campo obrigatório")
-    @Pattern(regexp = "^\\d{11}$", message = "CPF deve conter 11 dígitos, somente números")
+    @Pattern(regexp = "^[0-9]{11}$", message = "CPF deve ter 11 dígitos")
     private String cpf;
 
     public NovoFuncionarioDTO(){

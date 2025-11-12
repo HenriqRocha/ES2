@@ -22,47 +22,38 @@ public class FuncionarioController {
            @Valid @RequestBody NovoFuncionarioDTO dto
     ) {
         FuncionarioDTO funcionarioSalvo = service.cadastrarFuncionario(dto);
-        return ResponseEntity.ok(funcionarioSalvo);
+        return ResponseEntity.ok(funcionarioSalvo);//200
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<FuncionarioDTO> buscarPorId(@PathVariable Long id) {
         FuncionarioDTO funcionario = service.buscarFuncionarioPorId(id);
-        return ResponseEntity.ok(funcionario);
+        return ResponseEntity.ok(funcionario);//200
     }
 
-    /**
-     * (READ) Endpoint para listar TODOS os funcionários.
-     * GET /funcionario
-     */
+    //listar funcionarios
     @GetMapping
     public ResponseEntity<List<FuncionarioDTO>> listarTodos() {
         List<FuncionarioDTO> funcionarios = service.listarFuncionarios();
-        return ResponseEntity.ok(funcionarios);
+        return ResponseEntity.ok(funcionarios);//200
     }
 
-    /**
-     * (UPDATE) Endpoint para ATUALIZAR um funcionário.
-     * PUT /funcionario/{id}
-     */
+    //atualiza funcionario
     @PutMapping("/{id}")
     public ResponseEntity<FuncionarioDTO> atualizar(
             @PathVariable Long id,
             @Valid @RequestBody NovoFuncionarioDTO dto
     ) {
         FuncionarioDTO funcionarioAtualizado = service.atualizarFuncionario(id, dto);
-        return ResponseEntity.ok(funcionarioAtualizado);
+        return ResponseEntity.ok(funcionarioAtualizado);//200
     }
 
-    /**
-     * (DELETE) Endpoint para DELETAR um funcionário.
-     * DELETE /funcionario/{id}
-     */
+    //deletar funcionario
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletarFuncionario(id);
 
-        // Retorna 204 No Content (padrão para DELETE bem sucedido)
-        return ResponseEntity.noContent().build();
+        //200
+        return ResponseEntity.ok().build();
     }
 }

@@ -27,23 +27,23 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// 1. Diz ao Spring para testar APENAS o Controller e o nosso Handler
+//testa apenas handler e controller
 @WebMvcTest(controllers = {FuncionarioController.class, GlobalHandlerException.class})
 class FuncionarioControllerTest {
 
-    // 2. O "cliente" falso para fazer requisições HTTP
+    //cliente falso
     @Autowired
     private MockMvc mockMvc;
 
-    // 3. O "serviço" falso que o controller vai usar
+    //serviço falso
     @MockBean
     private FuncionarioService service;
 
-    // 4. O conversor de Java para JSON
+    //conversor para json
     @Autowired
     private ObjectMapper objectMapper;
 
-    // Variáveis de teste
+    //variáveis de teste
     private NovoFuncionarioDTO novoFuncionarioDTO;
     private FuncionarioDTO funcionarioDTO;
     private Long idExistente = 1L;
@@ -51,7 +51,7 @@ class FuncionarioControllerTest {
 
     @BeforeEach
     void setUp() {
-        // DTO de entrada (para POST/PUT)
+        //entradas
         novoFuncionarioDTO = new NovoFuncionarioDTO();
         novoFuncionarioDTO.setNome("João Teste");
         novoFuncionarioDTO.setEmail("joao@teste.com");
@@ -61,29 +61,27 @@ class FuncionarioControllerTest {
         novoFuncionarioDTO.setSenha("123");
         novoFuncionarioDTO.setConfirmacaoSenha("123");
 
-        // DTO de saída (o que o serviço retorna)
+        //saidas
         funcionarioDTO = new FuncionarioDTO();
         funcionarioDTO.setMatricula(idExistente);
         funcionarioDTO.setNome("João Teste");
         funcionarioDTO.setEmail("joao@teste.com");
-        // ... (etc.)
     }
 
     @Test
     @DisplayName("POST /funcionario - Deve cadastrar e retornar 200 OK")
     void cadastrar() throws Exception {
-        // ARRANGE
-        // Diz ao "serviço falso" o que retornar
+        //o que retornar
         when(service.cadastrarFuncionario(any(NovoFuncionarioDTO.class))).thenReturn(funcionarioDTO);
 
-        // ACT & ASSERT
-        // Simula o POST
+
+        //simula o POST
         mockMvc.perform(post("/funcionario")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(novoFuncionarioDTO)))
-                // Verifica se a resposta foi 200 OK
+                //Verifica se a resposta foi 200 OK
                 .andExpect(status().isOk())
-                // Verifica se o JSON de resposta tem os campos corretos
+                //Verifica se o JSON de resposta tem os campos corretos
                 .andExpect(jsonPath("$.matricula").value(idExistente))
                 .andExpect(jsonPath("$.nome").value("João Teste"));
     }
@@ -91,9 +89,7 @@ class FuncionarioControllerTest {
     @Test
     @DisplayName("POST /funcionario - Deve retornar 400 Bad Request por falha na validação")
     void cadastrarComErroDeValidacao() throws Exception {
-        // ARRANGE
-        // Cria um DTO inválido, mas desta vez, preenchemos TUDO
-        // e falhamos APENAS no campo que queremos testar.
+
         NovoFuncionarioDTO dtoInvalido = new NovoFuncionarioDTO();
         dtoInvalido.setNome("João Teste");
         dtoInvalido.setEmail("joao@teste.com");
@@ -102,18 +98,16 @@ class FuncionarioControllerTest {
         dtoInvalido.setIdade(30);
         dtoInvalido.setConfirmacaoSenha("123");
 
-        // AQUI ESTÁ O ERRO INTENCIONAL:
-        dtoInvalido.setSenha(""); // Vazio (falha no @NotBlank)
+        dtoInvalido.setSenha(""); //falha no @NotBlank
 
-        // ACT & ASSERT
-        // Simula o POST
+
         mockMvc.perform(post("/funcionario")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
-                // Verifica se o status é 400 (Bad Request)
-                .andExpect(status().isBadRequest())
+                // Verifica se o status é 422
+                .andExpect(status().isUnprocessableEntity())
                 // Verifica se a resposta de erro (do GlobalExceptionHandler) está correta
-                .andExpect(jsonPath("$.codigo").value("400 BAD_REQUEST"))
+                .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY"))
                 // Agora, a mensagem "Senha é obrigatória" SERÁ a única mensagem
                 .andExpect(jsonPath("$.mensagem").value("Campo obrigatório"));
     }
@@ -121,10 +115,9 @@ class FuncionarioControllerTest {
     @Test
     @DisplayName("GET /funcionario/{id} - Deve buscar por ID e retornar 200 OK")
     void buscarPorId() throws Exception {
-        // ARRANGE
+
         when(service.buscarFuncionarioPorId(idExistente)).thenReturn(funcionarioDTO);
 
-        // ACT & ASSERT
         mockMvc.perform(get("/funcionario/{id}", idExistente))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.matricula").value(idExistente));
@@ -133,12 +126,10 @@ class FuncionarioControllerTest {
     @Test
     @DisplayName("GET /funcionario/{id} - Deve retornar 404 Not Found ao buscar ID inexistente")
     void buscarPorIdInexistente() throws Exception {
-        // ARRANGE
-        // Simula o "serviço" lançando a exceção que criámos
+
         when(service.buscarFuncionarioPorId(idInexistente))
                 .thenThrow(new RecursoNaoEncontradoException("Funcionário não encontrado"));
 
-        // ACT & ASSERT
         mockMvc.perform(get("/funcionario/{id}", idInexistente))
                 // Verifica se o status é 404
                 .andExpect(status().isNotFound())
@@ -150,9 +141,9 @@ class FuncionarioControllerTest {
     @Test
     @DisplayName("GET /funcionario - Deve listar todos e retornar 200 OK")
     void listarTodos() throws Exception {
-        // ARRANGE
+
         when(service.listarFuncionarios()).thenReturn(Collections.singletonList(funcionarioDTO));
-        // ACT & ASSERT
+
         mockMvc.perform(get("/funcionario"))
                 .andExpect(status().isOk())
                 // Verifica se a resposta é um array ([...]) e se o primeiro item tem a matrícula
@@ -162,10 +153,10 @@ class FuncionarioControllerTest {
     @Test
     @DisplayName("PUT /funcionario/{id} - Deve atualizar e retornar 200 OK")
     void atualizar() throws Exception {
-        // ARRANGE
+
         when(service.atualizarFuncionario(eq(idExistente), any(NovoFuncionarioDTO.class))).thenReturn(funcionarioDTO);
 
-        // ACT & ASSERT
+
         mockMvc.perform(put("/funcionario/{id}", idExistente)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(novoFuncionarioDTO)))
@@ -174,14 +165,13 @@ class FuncionarioControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /funcionario/{id} - Deve deletar e retornar 204 No Content")
+    @DisplayName("DELETE /funcionario/{id} - Deve deletar e retornar 200 No Content")
     void deletar() throws Exception {
-        // ARRANGE
-        // O método 'deletar' não retorna nada (void)
+
         doNothing().when(service).deletarFuncionario(idExistente);
 
         // ACT & ASSERT
         mockMvc.perform(delete("/funcionario/{id}", idExistente))
-                .andExpect(status().isNoContent()); // O controller retorna 204
+                .andExpect(status().isOk()); // O controller retorna 200
     }
 }
