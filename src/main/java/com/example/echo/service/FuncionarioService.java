@@ -23,11 +23,11 @@ public class FuncionarioService {
 
         //pega o dto e transforma para a entidade do bd
         Funcionario novoFuncionario = new Funcionario();
-        novoFuncionario.setNome(dto.getNome());
-        novoFuncionario.setEmail(dto.getEmail());
-        novoFuncionario.setCpf(dto.getCpf());
-        novoFuncionario.setIdade(dto.getIdade());
-        novoFuncionario.setFuncao(dto.getFuncao());
+
+        //dados 'comuns'
+        atualizarDadosBase(novoFuncionario, dto);
+
+        //senha
         novoFuncionario.setSenha(dto.getSenha());
 
         //salvando
@@ -38,7 +38,6 @@ public class FuncionarioService {
     }
 
     public FuncionarioDTO buscarFuncionarioPorId(Long id) {
-        // Agora, lançamos a nossa própria exceção de negócio
         Funcionario funcionario = repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário não encontrado com ID: " + id));
 
@@ -46,7 +45,7 @@ public class FuncionarioService {
     }
 
     /**
-     * (READ) Lógica para listar TODOS os funcionários. (Não muda)
+     * (READ) Lógica para listar TODOS os funcionários.
      */
     public List<FuncionarioDTO> listarFuncionarios() {
         Iterable<Funcionario> funcionarios = repository.findAll();
@@ -57,7 +56,6 @@ public class FuncionarioService {
 
     /**
      * (UPDATE) Lógica para ATUALIZAR um funcionário.
-     * AGORA ESTÁ CORRETO.
      */
     public FuncionarioDTO atualizarFuncionario(Long id, NovoFuncionarioDTO dto) {
         // 1. Verifica se o funcionário existe
@@ -65,11 +63,8 @@ public class FuncionarioService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário não encontrado com ID: " + id));
 
         // 2. Atualiza os dados
-        funcionarioExistente.setNome(dto.getNome());
-        funcionarioExistente.setEmail(dto.getEmail());
-        funcionarioExistente.setCpf(dto.getCpf());
-        funcionarioExistente.setIdade(dto.getIdade());
-        funcionarioExistente.setFuncao(dto.getFuncao());
+        atualizarDadosBase(funcionarioExistente, dto);
+
         if (dto.getSenha() != null && !dto.getSenha().isEmpty()) {
             funcionarioExistente.setSenha(dto.getSenha());
         }
@@ -91,5 +86,15 @@ public class FuncionarioService {
 
         // 2. Se existir, deleta
         repository.deleteById(id);
+    }
+
+    //Métodos auxiliares
+
+    private void atualizarDadosBase(Funcionario funcionario, NovoFuncionarioDTO dto) {
+        funcionario.setNome(dto.getNome());
+        funcionario.setEmail(dto.getEmail());
+        funcionario.setCpf(dto.getCpf());
+        funcionario.setIdade(dto.getIdade());
+        funcionario.setFuncao(dto.getFuncao());
     }
 }
