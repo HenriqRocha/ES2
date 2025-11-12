@@ -92,9 +92,18 @@ class FuncionarioControllerTest {
     @DisplayName("POST /funcionario - Deve retornar 400 Bad Request por falha na validação")
     void cadastrarComErroDeValidacao() throws Exception {
         // ARRANGE
-        // Cria um DTO inválido (sem nome)
+        // Cria um DTO inválido, mas desta vez, preenchemos TUDO
+        // e falhamos APENAS no campo que queremos testar.
         NovoFuncionarioDTO dtoInvalido = new NovoFuncionarioDTO();
-        dtoInvalido.setEmail("email@valido.com");
+        dtoInvalido.setNome("João Teste");
+        dtoInvalido.setEmail("joao@teste.com");
+        dtoInvalido.setCpf("12345678901");
+        dtoInvalido.setFuncao(FuncaoFuncionario.ADMINISTRATIVO);
+        dtoInvalido.setIdade(30);
+        dtoInvalido.setConfirmacaoSenha("123");
+
+        // AQUI ESTÁ O ERRO INTENCIONAL:
+        dtoInvalido.setSenha(""); // Vazio (falha no @NotBlank)
 
         // ACT & ASSERT
         // Simula o POST
@@ -105,7 +114,8 @@ class FuncionarioControllerTest {
                 .andExpect(status().isBadRequest())
                 // Verifica se a resposta de erro (do GlobalExceptionHandler) está correta
                 .andExpect(jsonPath("$.codigo").value("400 BAD_REQUEST"))
-                .andExpect(jsonPath("$.mensagem").value("Senha é obrigatória")); // A primeira regra @NotBlank do DTO
+                // Agora, a mensagem "Senha é obrigatória" SERÁ a única mensagem
+                .andExpect(jsonPath("$.mensagem").value("Senha é obrigatória"));
     }
 
     @Test
