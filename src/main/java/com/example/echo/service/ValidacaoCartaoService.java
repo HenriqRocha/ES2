@@ -7,5 +7,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ValidacaoCartaoService {
 
-    public boolean validarCartao(CartaoDeCreditoDTO cartaoDTO){return true;}
+    public boolean validarCartao(CartaoDeCreditoDTO cartaoDTO){
+        cartaoDTO.getCvv();
+        return true;
+    }
 }

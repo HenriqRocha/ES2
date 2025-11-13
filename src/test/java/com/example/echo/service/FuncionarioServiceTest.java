@@ -104,7 +104,7 @@ class FuncionarioServiceTest {
         verify(repository, times(1)).findById(idInexistente);
     }
 
-    //listar todos
+    //listar todos os funcionários
     @Test
     @DisplayName("Deve listar todos os funcionários")
     void deveListarTodosFuncionarios() {

@@ -9,7 +9,7 @@ import java.util.Objects;
 public class SenhasIguaisValidator implements ConstraintValidator<SenhasIguais, CiclistaPostDTO> {
     @Override
     public void initialize(SenhasIguais contraintAnnotation){
-
+        //Método vazio
     }
 
     //validação nova R2

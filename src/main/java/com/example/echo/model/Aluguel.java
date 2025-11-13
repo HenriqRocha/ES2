@@ -41,6 +41,7 @@ public class Aluguel {
     private LocalDateTime horaFim;
 
     public Aluguel() {
+        //precisa do contrutor vazio para o JPA
     }
 
     public Long getId() {

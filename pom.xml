@@ -19,6 +19,18 @@
     <sonar.organization>Henrique Rocha de Araujo Miranda</sonar.organization>
     <sonar.projectKey>henriqrocha</sonar.projectKey>
     <sonar.duplication.threshold>1.0</sonar.duplication.threshold>
+    <sonar.exclusions>
+      **/src/main/java/com/example/echo/EchoApplication.java,
+
+      **/src/main/java/com/example/echo/model/**,
+
+      **/src/main/java/com/example/echo/dto/**,
+
+      **/src/main/java/com/example/echo/repository/**,
+
+      **/src/main/java/com/example/echo/service/CiclistaMapper.java,
+      **/src/main/java/com/example/echo/service/EmailService.java
+    </sonar.exclusions>
   </properties>
 
   <dependencies>

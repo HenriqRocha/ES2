@@ -25,6 +25,7 @@ public class CartaoDeCredito {
     private Ciclista ciclista;
 
     public CartaoDeCredito() {
+        //precisa do contrutor vazio para o JPA
     }
 
     // --- GETTERS E SETTERS ---

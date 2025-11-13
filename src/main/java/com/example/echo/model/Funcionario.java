@@ -36,6 +36,7 @@ public class Funcionario {
     private String senha;
 
     public Funcionario() {
+        //precisa do contrutor vazio para o JPA
     }
 
     public Long getId() {

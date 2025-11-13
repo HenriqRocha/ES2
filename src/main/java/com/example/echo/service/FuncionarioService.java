@@ -4,7 +4,6 @@ import com.example.echo.dto.FuncionarioDTO;
 import com.example.echo.dto.NovoFuncionarioDTO;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.model.Funcionario;
-import java.util.Objects;
 import java.util.Optional;
 
 import com.example.echo.repository.FuncionarioRepository;

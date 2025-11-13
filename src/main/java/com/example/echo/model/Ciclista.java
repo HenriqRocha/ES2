@@ -61,6 +61,7 @@ public class Ciclista {
     private CartaoDeCredito cartaoDeCredito;
 
     public Ciclista() {
+        //precisa do contrutor vazio para o JPA
     }
 
     public Long getId() {

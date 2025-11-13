@@ -31,6 +31,7 @@ public class NovoFuncionarioDTO {
     private String cpf;
 
     public NovoFuncionarioDTO(){
+        //precisa do contrutor vazio para o JPA
     }
 
     public String getSenha() {

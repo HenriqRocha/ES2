@@ -15,26 +15,25 @@ public class ValidaNacionalidadeValidator implements ConstraintValidator<ValidaN
         Nacionalidade nacionalidade = dto.getNacionalidade();
 
         //R1 if brasileiro cpf obrigatorio
-        if (nacionalidade == Nacionalidade.BRASILEIRO){
-            if(dto.getCpf() == null || dto.getCpf().trim().isEmpty()){
-                //criando mensagem especifica de cpf
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate("CPF é obrigatório para brasileiros")
-                        .addPropertyNode("cpf").addConstraintViolation();
-                return false;
-            }
+        if (nacionalidade == Nacionalidade.BRASILEIRO && (dto.getCpf() == null || dto.getCpf().trim().isEmpty())){
+
+            //criando mensagem especifica de cpf
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("CPF é obrigatório para brasileiros")
+                    .addPropertyNode("cpf").addConstraintViolation();
+            return false;
         }
 
         //R1 if estrangeiro passaporte obrigatório
-        if (nacionalidade == Nacionalidade.ESTRANGEIRO){
-            if (dto.getPassaporte() == null || dto.getPassaporte().getNumero() == null ||
-                    dto.getPassaporte().getPais() == null || dto.getPassaporte().getValidade() == null){
-                //mensagem específica de passaporte
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate("Dados do passaporte são obrigatórios para estrangeiros")
-                        .addPropertyNode("passaporte").addConstraintViolation();
-                return false;
-            }
+        if (nacionalidade == Nacionalidade.ESTRANGEIRO && (dto.getPassaporte() == null || dto.getPassaporte().getNumero() == null ||
+                dto.getPassaporte().getPais() == null || dto.getPassaporte().getValidade() == null)){
+
+            //mensagem específica de passaporte
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Dados do passaporte são obrigatórios para estrangeiros")
+                    .addPropertyNode("passaporte").addConstraintViolation();
+            return false;
+
         }
         return true;
     }
