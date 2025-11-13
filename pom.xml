@@ -28,6 +28,8 @@
 
       **/src/main/java/com/example/echo/repository/**,
 
+      **/src/main/java/com/example/echo/service/ValidacaoCartaoService.java
+
       **/src/main/java/com/example/echo/service/CiclistaMapper.java,
       **/src/main/java/com/example/echo/service/EmailService.java
     </sonar.exclusions>
