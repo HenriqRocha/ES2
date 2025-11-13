@@ -70,10 +70,15 @@ class ValidaNacionalidadeValidatorTest {
     @DisplayName("Deve retornar true para Estrangeiro com Passaporte")
     void deveRetornarTrueParaEstrangeiroComPassaporte() {
         dto.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+
         PassaporteDTO passaporteValido = new PassaporteDTO();
         passaporteValido.setNumero("A1B234567");
         passaporteValido.setPais("Canada");
         passaporteValido.setValidade(LocalDate.now().plusYears(1));
+
+        dto.setPassaporte(passaporteValido);
+
+        assertTrue(validator.isValid(dto, context));
     }
 
     @Test
