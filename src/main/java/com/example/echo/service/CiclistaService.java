@@ -15,10 +15,9 @@ import org.springframework.stereotype.Service;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Service // 1. Diz ao Spring que esta é uma classe de Serviço (um "Bean")
+@Service
 public class CiclistaService {
 
-    // 2. Injeta o Repositório para podermos falar com o banco
     @Autowired
     private CiclistaRepository repository;
 
@@ -35,14 +34,7 @@ public class CiclistaService {
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$");
 
-    /**
-     * Lógica para o UC01 - Fluxo Alternativo [A1]
-     * Verifica se um email já está cadastrado no banco de dados.
-     *
-     * @param email O email a ser verificado.
-     * @return true se o email já existe, false caso contrário.
-     * @throws DadosInvalidosException se o formato for inválido
-     */
+    //UC01 - A1
     public boolean existeEmail(String email) {
         //R3
         if (!isEmaivalido(email)){

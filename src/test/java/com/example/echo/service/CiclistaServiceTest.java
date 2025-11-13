@@ -29,7 +29,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CiclistaServiceTest {
 
-    // --- Mocks das Dependências ---
     @Mock
     private CiclistaRepository repository;
     @Mock
@@ -39,11 +38,9 @@ class CiclistaServiceTest {
     @Mock
     private EmailService emailService;
 
-    // --- Serviço sob Teste ---
     @InjectMocks
     private CiclistaService service;
 
-    // --- Dados de Teste (Setup) ---
     private CiclistaPostDTO ciclistaPostDTO;
     private Ciclista ciclistaEntidade;
     private CiclistaDTO ciclistaDTO;
@@ -73,45 +70,40 @@ class CiclistaServiceTest {
         ciclistaDTO.setEmail("teste@email.com");
     }
 
-    // ======================================================
-    // === Testes do 'cadastrarCiclista' (NOVOS)
-    // ======================================================
 
+    //Cadastrar ciclista
     @Test
     @DisplayName("Deve cadastrar ciclista com sucesso (Fluxo Principal)")
     void deveCadastrarCiclistaComSucesso() {
-        // ARRANGE
-        // 1. Validações de duplicidade (passam)
+        //Validações de duplicidade (passam)
         when(repository.findByEmail(ciclistaPostDTO.getEmail())).thenReturn(Optional.empty());
         when(repository.findByCpf(ciclistaPostDTO.getCpf())).thenReturn(Optional.empty());
 
-        // 2. Validação do Cartão (passa)
+        //Validação do Cartão (passa)
         when(validacaoCartaoService.validarCartao(any(CartaoDeCreditoDTO.class))).thenReturn(true);
 
-        // 3. Mapeamento (DTO -> Entidade)
+        //Mapeamento (DTO -> Entidade)
         when(ciclistaMapper.toEntity(ciclistaPostDTO)).thenReturn(ciclistaEntidade);
 
-        // 4. Salvar no Banco (retorna a entidade salva)
+        //Salvar no Banco (retorna a entidade salva)
         when(repository.save(ciclistaEntidade)).thenReturn(ciclistaEntidade);
 
-        // 5. Mapeamento (Entidade -> DTO Resposta)
+        //Mapeamento (Entidade -> DTO Resposta)
         when(ciclistaMapper.toDTO(ciclistaEntidade)).thenReturn(ciclistaDTO);
 
-        // 6. Mock do Email (não faz nada, apenas é chamado)
+        //Mock do Email
         doNothing().when(emailService).enviarEmail(anyString(), anyString(), anyString());
 
-        // ACT
         CiclistaDTO resultado = service.cadastrarCiclista(ciclistaPostDTO);
 
-        // ASSERT
         assertNotNull(resultado);
         assertEquals(ciclistaDTO.getId(), resultado.getId());
         assertEquals(ciclistaDTO.getEmail(), resultado.getEmail());
 
-        // Verifica se o status foi definido corretamente
+        //Verifica se o status foi definido corretamente
         assertEquals(StatusCiclista.AGUARDANDO_CONFIRMACAO, ciclistaEntidade.getStatus());
 
-        // Verifica se todos os mocks foram chamados
+        //Verifica se todos os mocks foram chamados
         verify(repository, times(1)).findByEmail(ciclistaPostDTO.getEmail());
         verify(repository, times(1)).findByCpf(ciclistaPostDTO.getCpf());
         verify(validacaoCartaoService, times(1)).validarCartao(any(CartaoDeCreditoDTO.class));
@@ -122,11 +114,9 @@ class CiclistaServiceTest {
     @Test
     @DisplayName("Deve lançar DadosInvalidosException por Email já cadastrado")
     void deveLancarExcecaoQuandoEmailJaExiste() {
-        // ARRANGE
-        // Validação de duplicidade (Email falha)
+        //validação de email
         when(repository.findByEmail(ciclistaPostDTO.getEmail())).thenReturn(Optional.of(new Ciclista()));
 
-        // ACT & ASSERT
         DadosInvalidosException excecao = assertThrows(
                 DadosInvalidosException.class,
                 () -> service.cadastrarCiclista(ciclistaPostDTO)
@@ -134,7 +124,7 @@ class CiclistaServiceTest {
 
         assertEquals("Email já cadastrado.", excecao.getMessage());
 
-        // Garante que o resto do fluxo (CPF, Cartão, Save) NUNCA foi chamado
+        //o resto não deve ser chamado
         verify(repository, never()).findByCpf(any());
         verify(validacaoCartaoService, never()).validarCartao(any());
         verify(repository, never()).save(any());
@@ -144,12 +134,10 @@ class CiclistaServiceTest {
     @Test
     @DisplayName("Deve lançar DadosInvalidosException por CPF já cadastrado")
     void deveLancarExcecaoQuandoCpfJaExiste() {
-        // ARRANGE
-        // Validação de duplicidade (Email passa, CPF falha)
+        //cpf duplicado
         when(repository.findByEmail(ciclistaPostDTO.getEmail())).thenReturn(Optional.empty());
         when(repository.findByCpf(ciclistaPostDTO.getCpf())).thenReturn(Optional.of(new Ciclista()));
 
-        // ACT & ASSERT
         DadosInvalidosException excecao = assertThrows(
                 DadosInvalidosException.class,
                 () -> service.cadastrarCiclista(ciclistaPostDTO)
@@ -157,16 +145,14 @@ class CiclistaServiceTest {
 
         assertEquals("CPF já cadastrado.", excecao.getMessage());
 
-        // Garante que o resto do fluxo (Cartão, Save) NUNCA foi chamado
+        //O resto não deve ser chamado
         verify(validacaoCartaoService, never()).validarCartao(any());
         verify(repository, never()).save(any());
         verify(emailService, never()).enviarEmail(anyString(), anyString(), anyString());
     }
 
-    // ======================================================
-    // === Testes do 'existeEmail' (ANTIGOS)
-    // ======================================================
 
+    //existe email
     @Test
     @DisplayName("Deve lançar DadosInvalidosException para um email nulo")
     void deveLancarExcecaoQuandoEmailForNulo() {
@@ -214,38 +200,35 @@ class CiclistaServiceTest {
     @Test
     @DisplayName("Deve ativar ciclista com sucesso (UC02)")
     void deveAtivarCiclistaComSucesso() {
-        // ARRANGE
         Long idCiclista = 1L;
 
-        // Configura o ciclista de entrada (que o findById vai retornar)
+        //configura ciclista da entrada
         Ciclista ciclistaPendente = new Ciclista();
         ciclistaPendente.setId(idCiclista);
         ciclistaPendente.setStatus(StatusCiclista.AGUARDANDO_CONFIRMACAO);
 
         when(repository.findById(idCiclista)).thenReturn(Optional.of(ciclistaPendente));
 
-        // Configura o ciclista de saída (que o save vai retornar)
+        //configura o ciclista da saida
         Ciclista ciclistaAtivo = new Ciclista();
         ciclistaAtivo.setId(idCiclista);
         ciclistaAtivo.setStatus(StatusCiclista.ATIVO);
 
         when(repository.save(ciclistaPendente)).thenReturn(ciclistaAtivo);
 
-        // Configura o DTO de resposta
+        //Configura o DTO de resposta
         CiclistaDTO dtoResposta = new CiclistaDTO();
         dtoResposta.setId(idCiclista);
         dtoResposta.setStatus(StatusCiclista.ATIVO);
 
         when(ciclistaMapper.toDTO(ciclistaAtivo)).thenReturn(dtoResposta);
 
-        // ACT
         CiclistaDTO resultado = service.ativarCiclista(idCiclista);
 
-        // ASSERT
         assertNotNull(resultado);
         assertEquals(StatusCiclista.ATIVO, resultado.getStatus());
 
-        // Verifica se o status e a data foram definidos (Passo 3 do UC02)
+        //verifica se o status e a data foram definidos
         assertNotNull(ciclistaPendente.getDataConfirmacao());
         assertEquals(StatusCiclista.ATIVO, ciclistaPendente.getStatus());
 
@@ -257,40 +240,38 @@ class CiclistaServiceTest {
     @Test
     @DisplayName("Deve lançar RecursoNaoEncontradoException ao tentar ativar ID inexistente (UC02 - 404)")
     void deveLancar404AoAtivarIdInexistente() {
-        // ARRANGE
+
         Long idInexistente = 99L;
         when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 
-        // ACT & ASSERT
         RecursoNaoEncontradoException excecao = assertThrows(
                 RecursoNaoEncontradoException.class,
                 () -> service.ativarCiclista(idInexistente)
         );
 
         assertEquals("Ciclista não encontrado.", excecao.getMessage());
-        verify(repository, never()).save(any()); // Garante que nunca tentou salvar
+        verify(repository, never()).save(any()); //Garante que nunca tentou salvar
     }
 
     @Test
     @DisplayName("Deve lançar DadosInvalidosException ao tentar ativar ciclista que não está pendente (UC02 - E1 - 422)")
     void deveLancar422AoAtivarCiclistaNaoPendente() {
-        // ARRANGE
+
         Long idCiclista = 1L;
 
-        // Ciclista já está ATIVO
+        //Ciclista ativo
         Ciclista ciclistaAtivo = new Ciclista();
         ciclistaAtivo.setId(idCiclista);
         ciclistaAtivo.setStatus(StatusCiclista.ATIVO);
 
         when(repository.findById(idCiclista)).thenReturn(Optional.of(ciclistaAtivo));
 
-        // ACT & ASSERT
         DadosInvalidosException excecao = assertThrows(
                 DadosInvalidosException.class,
                 () -> service.ativarCiclista(idCiclista)
         );
 
         assertEquals("Status de ciclista inválido.", excecao.getMessage());
-        verify(repository, never()).save(any()); // Garante que nunca tentou salvar
+        verify(repository, never()).save(any()); //Garante que nunca tentou salvar
     }
 }

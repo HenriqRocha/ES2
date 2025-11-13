@@ -2,7 +2,11 @@ package com.example.echo.service;
 
 import com.example.echo.dto.FuncionarioDTO;
 import com.example.echo.dto.NovoFuncionarioDTO;
+import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.model.Funcionario;
+import java.util.Objects;
+import java.util.Optional;
+
 import com.example.echo.repository.FuncionarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,9 +48,7 @@ public class FuncionarioService {
         return new FuncionarioDTO(funcionario);
     }
 
-    /**
-     * (READ) Lógica para listar TODOS os funcionários.
-     */
+
     public List<FuncionarioDTO> listarFuncionarios() {
         Iterable<Funcionario> funcionarios = repository.findAll();
         return StreamSupport.stream(funcionarios.spliterator(), false)
@@ -54,16 +56,22 @@ public class FuncionarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * (UPDATE) Lógica para ATUALIZAR um funcionário.
-     */
+
     public FuncionarioDTO atualizarFuncionario(Long id, NovoFuncionarioDTO dto) {
-        // 1. Verifica se o funcionário existe
+        //funcionario existe?
         Funcionario funcionarioExistente = repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionário não encontrado com ID: " + id));
 
-        // 2. Atualiza os dados
-        atualizarDadosBase(funcionarioExistente, dto);
+        //email ja usado
+        Optional<Funcionario> funcionarioComEmail = repository.findByEmail(dto.getEmail());
+        if (funcionarioComEmail.isPresent() && !funcionarioComEmail.get().getId().equals(id)) {
+            throw new DadosInvalidosException("Email já cadastrado por outro funcionário.");
+        }
+
+        funcionarioExistente.setNome(dto.getNome());
+        funcionarioExistente.setEmail(dto.getEmail());
+        funcionarioExistente.setIdade(dto.getIdade());
+        funcionarioExistente.setFuncao(dto.getFuncao());
 
         if (dto.getSenha() != null && !dto.getSenha().isEmpty()) {
             funcionarioExistente.setSenha(dto.getSenha());
@@ -74,17 +82,13 @@ public class FuncionarioService {
         return new FuncionarioDTO(funcionarioAtualizado);
     }
 
-    /**
-     * (DELETE) Lógica para DELETAR um funcionário.
-     * AGORA ESTÁ CORRETO.
-     */
+
     public void deletarFuncionario(Long id) {
-        // 1. Verifica se o funcionário existe
+        //funcionario existe?
         if (!repository.existsById(id)) {
             throw new RecursoNaoEncontradoException("Funcionário não encontrado com ID: " + id);
         }
 
-        // 2. Se existir, deleta
         repository.deleteById(id);
     }
 

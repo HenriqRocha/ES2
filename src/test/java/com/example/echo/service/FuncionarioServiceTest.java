@@ -30,7 +30,6 @@ class FuncionarioServiceTest {
     @InjectMocks
     private FuncionarioService service;
 
-    // Variáveis de teste que vamos usar em vários testes
     private Funcionario funcionario;
     private NovoFuncionarioDTO novoFuncionarioDTO;
     private Long idExistente = 1L;
@@ -38,7 +37,7 @@ class FuncionarioServiceTest {
 
     @BeforeEach
     void setUp() {
-        // DTO (usado para criar e atualizar)
+        // DTO
         novoFuncionarioDTO = new NovoFuncionarioDTO();
         novoFuncionarioDTO.setNome("João Teste");
         novoFuncionarioDTO.setEmail("joao@teste.com");
@@ -48,7 +47,7 @@ class FuncionarioServiceTest {
         novoFuncionarioDTO.setSenha("123");
         novoFuncionarioDTO.setConfirmacaoSenha("123");
 
-        // Entidade (o que o repositório "falso" vai retornar)
+        // Entidade resposta do repositório falso
         funcionario = new Funcionario();
         funcionario.setId(idExistente);
         funcionario.setNome("João Teste");
@@ -59,50 +58,43 @@ class FuncionarioServiceTest {
         funcionario.setSenha("123");
     }
 
-    // --- TESTE 1: CADASTRAR (Caminho Feliz) ---
+    //Cadastrar
     @Test
     @DisplayName("Deve cadastrar um novo funcionário com sucesso")
     void deveCadastrarFuncionarioComSucesso() {
-        // ARRANGE (Já feito no setUp)
-        // Diga ao mock para retornar o funcionário com ID quando 'save' for chamado
+
         when(repository.save(any(Funcionario.class))).thenReturn(funcionario);
 
-        // ACT
         FuncionarioDTO resultado = service.cadastrarFuncionario(novoFuncionarioDTO);
 
-        // ASSERT
         assertNotNull(resultado);
         assertEquals(idExistente, resultado.getMatricula());
         assertEquals("João Teste", resultado.getNome());
         verify(repository, times(1)).save(any(Funcionario.class));
     }
 
-    // --- TESTE 2: BUSCAR POR ID (Caminho Feliz) ---
+    //buscar funcionario
     @Test
     @DisplayName("Deve buscar um funcionário por ID com sucesso")
     void deveBuscarFuncionarioPorIdComSucesso() {
-        // ARRANGE
-        // Diga ao mock para retornar o funcionário quando 'findById' for chamado
+
         when(repository.findById(idExistente)).thenReturn(Optional.of(funcionario));
 
-        // ACT
         FuncionarioDTO resultado = service.buscarFuncionarioPorId(idExistente);
 
-        // ASSERT
         assertNotNull(resultado);
         assertEquals(idExistente, resultado.getMatricula());
         verify(repository, times(1)).findById(idExistente);
     }
 
-    // --- TESTE 3: BUSCAR POR ID (Caminho Triste / 404) ---
+    //Busca funcionario falha
     @Test
     @DisplayName("Deve lançar RecursoNaoEncontradoException ao buscar ID que não existe")
     void deveLancarExcecaoAoBuscarIdInexistente() {
-        // ARRANGE
-        // Diga ao mock para retornar vazio quando 'findById' for chamado
+
         when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 
-        // ACT & ASSERT
+
         RecursoNaoEncontradoException excecao = assertThrows(
                 RecursoNaoEncontradoException.class,
                 () -> service.buscarFuncionarioPorId(idInexistente)
@@ -112,55 +104,47 @@ class FuncionarioServiceTest {
         verify(repository, times(1)).findById(idInexistente);
     }
 
-    // --- TESTE 4: LISTAR TODOS (Caminho Feliz) ---
+    //listar todos
     @Test
     @DisplayName("Deve listar todos os funcionários")
     void deveListarTodosFuncionarios() {
-        // ARRANGE
-        // Diga ao mock para retornar uma lista com o nosso funcionário
+
         when(repository.findAll()).thenReturn(Collections.singletonList(funcionario));
 
-        // ACT
         List<FuncionarioDTO> resultado = service.listarFuncionarios();
 
-        // ASSERT
         assertNotNull(resultado);
-        assertEquals(1, resultado.size()); // Esperamos 1 item na lista
+        assertEquals(1, resultado.size());
         assertEquals("João Teste", resultado.get(0).getNome());
         verify(repository, times(1)).findAll();
     }
 
-    // --- TESTE 5: ATUALIZAR (Caminho Feliz) ---
+    //atualizar
     @Test
     @DisplayName("Deve atualizar um funcionário com sucesso")
     void deveAtualizarFuncionarioComSucesso() {
-        // ARRANGE
-        // Diga ao mock para (1) encontrar o funcionário e (2) salvá-lo
+
         when(repository.findById(idExistente)).thenReturn(Optional.of(funcionario));
         when(repository.save(any(Funcionario.class))).thenReturn(funcionario);
 
-        // DTO com dados atualizados (embora sejam os mesmos do setup, a lógica é testada)
+        // DTO com dados atualizados
         novoFuncionarioDTO.setNome("João Atualizado");
 
-        // ACT
         FuncionarioDTO resultado = service.atualizarFuncionario(idExistente, novoFuncionarioDTO);
 
-        // ASSERT
         assertNotNull(resultado);
-        assertEquals("João Atualizado", resultado.getNome()); // Verifica se o nome mudou
+        assertEquals("João Atualizado", resultado.getNome()); //Verifica se o nome mudou
         verify(repository, times(1)).findById(idExistente);
         verify(repository, times(1)).save(any(Funcionario.class));
     }
 
-    // --- TESTE 6: ATUALIZAR (Caminho Triste / 404) ---
+    //Atualiza falha
     @Test
     @DisplayName("Deve lançar RecursoNaoEncontradoException ao tentar atualizar ID que não existe")
     void deveLancarExcecaoAoAtualizarIdInexistente() {
-        // ARRANGE
-        // Diga ao mock para NÃO encontrar o funcionário
+
         when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 
-        // ACT & ASSERT
         RecursoNaoEncontradoException excecao = assertThrows(
                 RecursoNaoEncontradoException.class,
                 () -> service.atualizarFuncionario(idInexistente, novoFuncionarioDTO)
@@ -171,33 +155,30 @@ class FuncionarioServiceTest {
         verify(repository, never()).save(any(Funcionario.class)); // Garante que o 'save' NUNCA foi chamado
     }
 
-    // --- TESTE 7: DELETAR (Caminho Feliz) ---
+    //deletar
     @Test
     @DisplayName("Deve deletar um funcionário com sucesso")
     void deveDeletarFuncionarioComSucesso() {
-        // ARRANGE
-        // Diga ao mock que o ID existe
+
         when(repository.existsById(idExistente)).thenReturn(true);
-        // Diga ao mock para não fazer nada quando 'deleteById' for chamado
+
         doNothing().when(repository).deleteById(idExistente);
 
-        // ACT & ASSERT (Verifica se NENHUMA exceção foi lançada)
+        //verifica se nenhuma exceção foi lançada
         assertDoesNotThrow(() -> service.deletarFuncionario(idExistente));
 
-        // Verifica se os métodos corretos foram chamados
+        //Verifica se os métodos corretos foram chamados
         verify(repository, times(1)).existsById(idExistente);
         verify(repository, times(1)).deleteById(idExistente);
     }
 
-    // --- TESTE 8: DELETAR (Caminho Triste / 404) ---
+    //deletar falha
     @Test
     @DisplayName("Deve lançar RecursoNaoEncontradoException ao tentar deletar ID que não existe")
     void deveLancarExcecaoAoDeletarIdInexistente() {
-        // ARRANGE
-        // Diga ao mock que o ID não existe
+
         when(repository.existsById(idInexistente)).thenReturn(false);
 
-        // ACT & ASSERT
         RecursoNaoEncontradoException excecao = assertThrows(
                 RecursoNaoEncontradoException.class,
                 () -> service.deletarFuncionario(idInexistente)
@@ -205,6 +186,6 @@ class FuncionarioServiceTest {
 
         assertEquals("Funcionário não encontrado com ID: " + idInexistente, excecao.getMessage());
         verify(repository, times(1)).existsById(idInexistente);
-        verify(repository, never()).deleteById(anyLong()); // Garante que o 'delete' NUNCA foi chamado
+        verify(repository, never()).deleteById(anyLong()); //Garante que o 'delete' nunca foi chamado
     }
 }

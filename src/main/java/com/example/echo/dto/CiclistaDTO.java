@@ -5,6 +5,7 @@ import com.example.echo.model.StatusCiclista;
 
 import java.time.LocalDate;
 
+//DTO de ciclista já cadastrado
 public class CiclistaDTO {
     private Long id;
     private String nome;

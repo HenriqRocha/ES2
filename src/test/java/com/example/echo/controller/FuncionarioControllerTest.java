@@ -108,7 +108,6 @@ class FuncionarioControllerTest {
                 .andExpect(status().isUnprocessableEntity())
                 // Verifica se a resposta de erro (do GlobalExceptionHandler) está correta
                 .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY"))
-                // Agora, a mensagem "Senha é obrigatória" SERÁ a única mensagem
                 .andExpect(jsonPath("$.mensagem").value("Campo obrigatório"));
     }
 
@@ -146,7 +145,7 @@ class FuncionarioControllerTest {
 
         mockMvc.perform(get("/funcionario"))
                 .andExpect(status().isOk())
-                // Verifica se a resposta é um array ([...]) e se o primeiro item tem a matrícula
+                //Verifica se a resposta é um array e se o primeiro item tem a matrícula
                 .andExpect(jsonPath("$[0].matricula").value(idExistente));
     }
 
@@ -170,7 +169,6 @@ class FuncionarioControllerTest {
 
         doNothing().when(service).deletarFuncionario(idExistente);
 
-        // ACT & ASSERT
         mockMvc.perform(delete("/funcionario/{id}", idExistente))
                 .andExpect(status().isOk()); // O controller retorna 200
     }

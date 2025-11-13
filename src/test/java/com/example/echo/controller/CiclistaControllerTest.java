@@ -117,11 +117,10 @@ class CiclistaControllerTest {
 
         String jsonInvalido = objectMapper.writeValueAsString(dtoInvalido);
 
-        // ACT & ASSERT
         mockMvc.perform(post("/ciclista")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonInvalido))
-                .andExpect(status().isUnprocessableEntity()) // Espera HTTP 422 (como definimos no Handler)
+                .andExpect(status().isUnprocessableEntity()) // Espera HTTP 422
                 .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY"));
     }
 
@@ -171,9 +170,8 @@ class CiclistaControllerTest {
 
         when(service.ativarCiclista(idExistente)).thenReturn(dtoResposta);
 
-        // ACT & ASSERT
         mockMvc.perform(post("/ciclista/{id}/ativar", idExistente))
-                .andExpect(status().isOk()) // Espera 200 OK
+                .andExpect(status().isOk()) // Espera 200
                 .andExpect(jsonPath("$.id").value(idExistente))
                 .andExpect(jsonPath("$.status").value("ATIVO"));
     }
@@ -181,14 +179,13 @@ class CiclistaControllerTest {
     @Test
     @DisplayName("POST /ciclista/{id}/ativar - Deve retornar 404 Not Found para ID inexistente")
     void deveRetornar404AoAtivarIdInexistente() throws Exception {
-        // ARRANGE
+
         Long idInexistente = 99L;
         String msgErro = "Ciclista não encontrado.";
 
         when(service.ativarCiclista(idInexistente))
                 .thenThrow(new RecursoNaoEncontradoException(msgErro));
 
-        // ACT & ASSERT
         mockMvc.perform(post("/ciclista/{id}/ativar", idInexistente))
                 .andExpect(status().isNotFound()) // Espera 404
                 .andExpect(jsonPath("$.codigo").value("404 NOT_FOUND"))
@@ -198,14 +195,13 @@ class CiclistaControllerTest {
     @Test
     @DisplayName("POST /ciclista/{id}/ativar - Deve retornar 422 Unprocessable Entity se ciclista não está pendente")
     void deveRetornar422AoAtivarCiclistaNaoPendente() throws Exception {
-        // ARRANGE
+
         Long idExistente = 1L;
         String msgErro = "Este ciclista não está aguardando confirmação.";
 
         when(service.ativarCiclista(idExistente))
                 .thenThrow(new DadosInvalidosException(msgErro));
 
-        // ACT & ASSERT
         mockMvc.perform(post("/ciclista/{id}/ativar", idExistente))
                 .andExpect(status().isUnprocessableEntity()) // Espera 422
                 .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY"))

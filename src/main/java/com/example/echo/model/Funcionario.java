@@ -14,7 +14,7 @@ import javax.persistence.Table;
 public class Funcionario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // O schema chama de 'matricula', mas ID é padrão
+    private Long id; //matricula
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -27,7 +27,7 @@ public class Funcionario {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private FuncaoFuncionario funcao; // Vamos criar este Enum
+    private FuncaoFuncionario funcao;
 
     @Column(nullable = false, unique = true)
     private String cpf;
@@ -35,11 +35,9 @@ public class Funcionario {
     @Column(nullable = false)
     private String senha;
 
-    // --- CONSTRUTOR VAZIO (Obrigatório pelo JPA) ---
     public Funcionario() {
     }
 
-    // --- GETTERS E SETTERS ---
     public Long getId() {
         return id;
     }
