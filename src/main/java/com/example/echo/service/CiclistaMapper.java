@@ -71,5 +71,26 @@ public class CiclistaMapper {
         entity.setCvv(dto.getCvv());
         return entity;
     }
+
+    //passar dto do put para cartão entidade
+    public void updateCartaoFromDTO(CartaoDeCreditoDTO dto, Ciclista ciclista) {
+        if (dto == null || ciclista == null) return;
+
+        CartaoDeCredito cartao = ciclista.getCartaoDeCredito();
+
+        if (cartao == null) {
+            // Se o ciclista ainda não tem cartão, cria um novo usando seu método existente
+            cartao = toCartaoEntity(dto);
+            // Garante o vínculo bidirecional (importante para o JPA)
+            cartao.setCiclista(ciclista);
+            ciclista.setCartaoDeCredito(cartao);
+        } else {
+            // Se já tem, atualizamos apenas os dados (mantendo o ID do cartão)
+            cartao.setNomeTitular(dto.getNomeTitular());
+            cartao.setNumero(dto.getNumero());
+            cartao.setValidade(dto.getValidade());
+            cartao.setCvv(dto.getCvv());
+        }
+    }
 }
 

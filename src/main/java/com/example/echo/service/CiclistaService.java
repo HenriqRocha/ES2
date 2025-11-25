@@ -1,6 +1,10 @@
 package com.example.echo.service;
 
+import com.example.echo.dto.CartaoDeCreditoDTO;
+import com.example.echo.dto.CiclistaPutDTO;
+import com.example.echo.model.CartaoDeCredito;
 import com.example.echo.model.Ciclista;
+import com.example.echo.model.Nacionalidade;
 import com.example.echo.model.StatusCiclista;
 
 import java.time.LocalDateTime;
@@ -99,6 +103,115 @@ public class CiclistaService {
         return ciclistaMapper.toDTO(ciclistaAtivo);
     }
 
+    //recupera dados do ciclista
+    public CiclistaDTO buscarCiclista(Long id) {
+        Ciclista ciclista = repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
+        return ciclistaMapper.toDTO(ciclista);
+    }
+
+    //UC06 PERGUNTAR SOBRE DADOS INVÁLIDOS
+    public CiclistaDTO atualizarCiclista(Long id, CiclistaPutDTO dados){
+        Ciclista ciclista = repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
+
+        if (dados.getNome() != null){
+            ciclista.setNome(dados.getNome());
+        }
+
+        //valida a senha pelo @senhasiguais
+        if (dados.getSenha() != null && !dados.getSenha().isBlank()){
+            ciclista.setSenha(dados.getSenha());
+        }
+
+        if (dados.getNacionalidade() != null){//mudou nacionalidade
+            ciclista.setNacionalidade(dados.getNacionalidade());
+
+            if (dados.getNacionalidade() == Nacionalidade.BRASILEIRO) {
+                if (dados.getCpf() != null) {
+                    ciclista.setCpf(dados.getCpf());
+                }
+                ciclista.setPassaporteValidade(null);
+                ciclista.setPassaporteNumero(null);
+                ciclista.setPassaportePais(null);
+            }
+            else {
+                if (dados.getPassaporte() != null){
+                    if (dados.getPassaporte().getNumero() != null){
+                        ciclista.setPassaporteNumero(dados.getPassaporte().getNumero());
+                    }
+
+                    if (dados.getPassaporte().getPais() != null){
+                        ciclista.setPassaportePais(dados.getPassaporte().getPais());
+                    }
+                    if (dados.getPassaporte().getValidade() != null){
+                        ciclista.setPassaporteValidade(dados.getPassaporte().getValidade());
+                    }
+                }
+                ciclista.setCpf(null);
+            }
+        } else {//mudou cpf ou passaporte apenas
+            if (ciclista.getNacionalidade() == Nacionalidade.BRASILEIRO && dados.getCpf() != null){
+                ciclista.setCpf(dados.getCpf());
+            } else if (ciclista.getNacionalidade() == Nacionalidade.ESTRANGEIRO && dados.getPassaporte() != null) {
+                if (dados.getPassaporte().getNumero() != null){
+                    ciclista.setPassaporteNumero(dados.getPassaporte().getNumero());
+                }
+
+                if (dados.getPassaporte().getPais() != null){
+                    ciclista.setPassaportePais(dados.getPassaporte().getPais());
+                }
+                if (dados.getPassaporte().getValidade() != null){
+                    ciclista.setPassaporteValidade(dados.getPassaporte().getValidade());
+                }
+            }
+        }
+        Ciclista salvo = repository.save(ciclista);
+        enviarEmailAtualizacao(salvo);
+        return ciclistaMapper.toDTO(salvo);
+    }
+
+    // GET: Recupera os dados do cartão
+    public CartaoDeCreditoDTO buscarCartao(Long idCiclista) {
+        Ciclista ciclista = repository.findById(idCiclista)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
+
+        // Assumindo que na tua Entidade Ciclista tens os campos do cartão
+        // ou um objeto embutido. Aqui uso o Mapper para extrair apenas a parte do cartão.
+        // Se não tiveres um método específico no mapper, podes criar manual:
+
+        CartaoDeCreditoDTO dto = new CartaoDeCreditoDTO();
+        dto.setNomeTitular(ciclista.getCartaoDeCredito().getNomeTitular());
+        dto.setNumero(ciclista.getCartaoDeCredito().getNumero());
+        dto.setValidade(ciclista.getCartaoDeCredito().getValidade());
+        dto.setCvv(ciclista.getCartaoDeCredito().getCvv());
+
+        return dto;
+    }
+
+    // PUT: Altera o cartão
+    public void alterarCartao(Long idCiclista, CartaoDeCreditoDTO novoCartao) {
+        Ciclista ciclista = repository.findById(idCiclista)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
+
+        // 1. Validação externa
+        boolean cartaoValido = validacaoCartaoService.validarCartao(novoCartao);
+        if (!cartaoValido) {
+            throw new DadosInvalidosException("O cartão de crédito foi reprovado pela operadora.");
+        }
+
+        //atualiza usando o mapper
+        ciclistaMapper.updateCartaoFromDTO(novoCartao, ciclista);
+
+        repository.save(ciclista);
+
+        try {
+            emailService.enviarEmail(ciclista.getEmail(), "Cartão Atualizado", "Dados de pagamento alterados.");
+        } catch (Exception e) {
+            System.err.println("Erro email: " + e.getMessage());
+        }
+    }
+
     //métodos auxiliares
 
     private boolean isEmaivalido(String email){
@@ -107,4 +220,17 @@ public class CiclistaService {
         Matcher matcher = EMAIL_PATTERN.matcher(email);
         return matcher.matches();
     }
+
+    private void enviarEmailAtualizacao(Ciclista ciclista) {
+        String mensagem = "Olá " + ciclista.getNome() + ", seus dados cadastrais foram alterados com sucesso.";
+
+        try {
+            emailService.enviarEmail(ciclista.getEmail(),"Atualização de dados", mensagem);
+        } catch (Exception e) {
+            //E1 avisa a falha mas não cancela a atualização
+            System.err.println("Falha ao enviar e-mail para " + ciclista.getEmail() + ": " + e.getMessage());
+        }
+    }
+
+
 }

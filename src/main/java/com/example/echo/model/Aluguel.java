@@ -40,6 +40,9 @@ public class Aluguel {
 
     private LocalDateTime horaFim;
 
+    @Column
+    private Double valorExtra = 0.0;
+
     public Aluguel() {
         //precisa do contrutor vazio para o JPA
     }
@@ -107,4 +110,7 @@ public class Aluguel {
     public void setHoraFim(LocalDateTime horaFim) {
         this.horaFim = horaFim;
     }
+
+    public Double getValorExtra() { return valorExtra; }
+    public void setValorExtra(Double valorExtra) { this.valorExtra = valorExtra; }
 }

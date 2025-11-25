@@ -1,14 +1,13 @@
 package com.example.echo.service;
 
+import com.example.echo.dto.*;
 import com.example.echo.exception.RecursoNaoEncontradoException;
 import com.example.echo.exception.DadosInvalidosException;
+import com.example.echo.model.CartaoDeCredito;
 import com.example.echo.model.Ciclista;
 import com.example.echo.model.Nacionalidade;
 import com.example.echo.model.StatusCiclista;
 import com.example.echo.repository.CiclistaRepository;
-import com.example.echo.dto.CiclistaDTO;
-import com.example.echo.dto.CiclistaPostDTO;
-import com.example.echo.dto.CartaoDeCreditoDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,6 +40,7 @@ class CiclistaServiceTest {
     private CiclistaService service;
 
     private CiclistaPostDTO ciclistaPostDTO;
+    private CiclistaPutDTO ciclistaPutDTO;
     private Ciclista ciclistaEntidade;
     private CiclistaDTO ciclistaDTO;
 
@@ -57,11 +57,17 @@ class CiclistaServiceTest {
         ciclistaPostDTO.setConfirmacaoSenha("senha123");
         ciclistaPostDTO.setMeioDePagamento(new CartaoDeCreditoDTO()); // DTO do cartão
 
+        ciclistaPutDTO = new CiclistaPutDTO();
+        ciclistaPutDTO.setNome("Nome Atualizado");
+
         // A Entidade que o Mapper "criaria"
         ciclistaEntidade = new Ciclista();
         ciclistaEntidade.setId(1L);
         ciclistaEntidade.setEmail("teste@email.com");
         ciclistaEntidade.setStatus(StatusCiclista.AGUARDANDO_CONFIRMACAO);
+        ciclistaEntidade.setNacionalidade(Nacionalidade.BRASILEIRO);
+        ciclistaEntidade.setCpf("12345678901");
+        ciclistaEntidade.setNome("Nome Antigo");
 
         // O DTO de resposta que o Mapper "criaria"
         ciclistaDTO = new CiclistaDTO();
@@ -272,5 +278,244 @@ class CiclistaServiceTest {
 
         assertEquals("Status de ciclista inválido.", excecao.getMessage());
         verify(repository, never()).save(any()); //Garante que nunca tentou salvar
+    }
+
+    //buscar ciclista
+    @Test
+    @DisplayName("Deve buscar ciclista por ID com sucesso")
+    void deveBuscarCiclistaPorId() {
+        Long id = 1L;
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(ciclistaMapper.toDTO(ciclistaEntidade)).thenReturn(ciclistaDTO);
+
+        CiclistaDTO resultado = service.buscarCiclista(id);
+
+        assertNotNull(resultado);
+        assertEquals(id, resultado.getId());
+        assertEquals("teste@email.com", resultado.getEmail());
+    }
+
+    @Test
+    @DisplayName("Deve lançar exceção ao buscar ciclista inexistente")
+    void deveFalharAoBuscarCiclistaInexistente() {
+        Long idInexistente = 99L;
+        when(repository.findById(idInexistente)).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNaoEncontradoException.class, () ->
+                service.buscarCiclista(idInexistente)
+        );
+    }
+
+    //atualizar ciclista UC06
+    @Test
+    @DisplayName("Deve atualizar ciclista com sucesso (alteração simples de nome)")
+    void deveAtualizarCiclistaComSucesso() {
+        //prepara
+        Long id = 1L;
+        ciclistaEntidade.setStatus(StatusCiclista.ATIVO);
+
+        // Mocks
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ciclistaMapper.toDTO(any(Ciclista.class))).thenReturn(ciclistaDTO);
+        doNothing().when(emailService).enviarEmail(any(), any(), any());
+
+        // 2. Ação
+        service.atualizarCiclista(id, ciclistaPutDTO);
+
+        // 3. Verificação
+        assertEquals("Nome Atualizado", ciclistaEntidade.getNome()); // Veio do DTO
+        assertEquals("12345678901", ciclistaEntidade.getCpf());    // Manteve o original
+
+        verify(repository).save(ciclistaEntidade);
+        verify(emailService).enviarEmail(eq(ciclistaEntidade.getEmail()), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Deve trocar nacionalidade para ESTRANGEIRO e limpar CPF")
+    void deveTrocarParaEstrangeiro() {
+        Long id = 1L;
+        ciclistaEntidade.setStatus(StatusCiclista.ATIVO);
+
+        //DTO pedindo mudança para Estrangeiro
+        ciclistaPutDTO.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+        PassaporteDTO pass = new PassaporteDTO();
+        pass.setNumero("P123");
+        pass.setPais("EUA");
+        pass.setValidade(LocalDate.now().plusYears(5));
+        ciclistaPutDTO.setPassaporte(pass);
+
+        // Mocks
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(i -> i.getArgument(0));
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        service.atualizarCiclista(id, ciclistaPutDTO);
+
+        // Verificações
+        assertEquals(Nacionalidade.ESTRANGEIRO, ciclistaEntidade.getNacionalidade());
+        assertNull(ciclistaEntidade.getCpf(), "O CPF deve ser nulo ao virar estrangeiro");
+        assertEquals("P123", ciclistaEntidade.getPassaporteNumero());
+        assertEquals("EUA", ciclistaEntidade.getPassaportePais());
+    }
+
+    @Test
+    @DisplayName("Deve trocar nacionalidade para BRASILEIRO e limpar Passaporte")
+    void deveTrocarParaBrasileiro() {
+        Long id = 1L;
+        //Preparar a entidade como se fosse ESTRANGEIRA antes de começar
+        ciclistaEntidade.setStatus(StatusCiclista.ATIVO);
+        ciclistaEntidade.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+        ciclistaEntidade.setPassaporteNumero("OLD999");
+        ciclistaEntidade.setCpf(null);
+
+        //DTO pedindo mudança para BRASILEIRO
+        ciclistaPutDTO.setNacionalidade(Nacionalidade.BRASILEIRO);
+        ciclistaPutDTO.setCpf("98765432100");
+
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(i -> i.getArgument(0));
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        service.atualizarCiclista(id, ciclistaPutDTO);
+
+        //Verificações
+        assertEquals(Nacionalidade.BRASILEIRO, ciclistaEntidade.getNacionalidade());
+        assertEquals("98765432100", ciclistaEntidade.getCpf());
+        assertNull(ciclistaEntidade.getPassaporteNumero(), "Passaporte deve ser limpo");
+    }
+
+    @Test
+    @DisplayName("Deve atualizar apenas campos do Passaporte mantendo nacionalidade ESTRANGEIRO (Fluxo Else)")
+    void deveAtualizarCamposPassaporteMantendoEstrangeiro() {
+        Long id = 1L;
+        //Configura entidade como Estrangeira
+        ciclistaEntidade.setStatus(StatusCiclista.ATIVO);
+        ciclistaEntidade.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+        ciclistaEntidade.setPassaporteNumero("OLD123");
+        ciclistaEntidade.setPassaportePais("Argentina");
+
+        //DTO sem mudar nacionalidade (null), mas mandando novo número de passaporte
+        ciclistaPutDTO.setNacionalidade(null);
+        PassaporteDTO pass = new PassaporteDTO();
+        pass.setNumero("NEW999");
+        //País null para testar se mantém o antigo
+        ciclistaPutDTO.setPassaporte(pass);
+
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(i -> i.getArgument(0));
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        service.atualizarCiclista(id, ciclistaPutDTO);
+
+        //Verificações
+        assertEquals(Nacionalidade.ESTRANGEIRO, ciclistaEntidade.getNacionalidade());
+        assertEquals("NEW999", ciclistaEntidade.getPassaporteNumero()); // Atualizou
+        assertEquals("Argentina", ciclistaEntidade.getPassaportePais()); // Manteve antigo
+    }
+
+    @Test
+    @DisplayName("Deve lançar RecursoNaoEncontradoException se ID não existir")
+    void deveLancar404AoAtualizarIdInexistente() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNaoEncontradoException.class,
+                () -> service.atualizarCiclista(99L, ciclistaPutDTO));
+
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Não deve falhar a atualização se o envio de email falhar (Fluxo E1)")
+    void naoDeveFalharSeEmailLancarExcecao() {
+        Long id = 1L;
+        ciclistaEntidade.setStatus(StatusCiclista.ATIVO);
+
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any())).thenReturn(ciclistaEntidade);
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        //Simula erro no serviço de email
+        doThrow(new RuntimeException("Erro SMTP")).when(emailService).enviarEmail(any(), any(), any());
+
+        //O método deve terminar sem lançar exceção
+        assertDoesNotThrow(() -> service.atualizarCiclista(id, ciclistaPutDTO));
+
+        //E os dados devem ter sido salvos
+        verify(repository, times(1)).save(ciclistaEntidade);
+    }
+
+    //testes de cartão
+    @Test
+    @DisplayName("Deve buscar cartão com sucesso")
+    void deveBuscarCartaoComSucesso() {
+        Long id = 1L;
+
+        CartaoDeCredito cartao = new CartaoDeCredito();
+        cartao.setNomeTitular("Titular Teste");
+        cartao.setNumero("1234");
+        ciclistaEntidade.setCartaoDeCredito(cartao);
+
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+
+        CartaoDeCreditoDTO resultado = service.buscarCartao(id);
+
+        assertNotNull(resultado);
+        assertEquals("Titular Teste", resultado.getNomeTitular());
+        assertEquals("1234", resultado.getNumero());
+    }
+
+    @Test
+    @DisplayName("Deve alterar cartão com sucesso (Validação Externa OK)")
+    void deveAlterarCartaoComSucesso() {
+        Long id = 1L;
+        CartaoDeCreditoDTO novoCartao = new CartaoDeCreditoDTO();
+        novoCartao.setNumero("4444");
+        novoCartao.setNomeTitular("Novo Titular");
+
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+
+        when(validacaoCartaoService.validarCartao(any(CartaoDeCreditoDTO.class))).thenReturn(true);
+
+        doNothing().when(emailService).enviarEmail(any(), any(), any());
+
+        service.alterarCartao(id, novoCartao);
+
+        //vendo se o mapper é acionado corretamente
+        verify(ciclistaMapper).updateCartaoFromDTO(eq(novoCartao), eq(ciclistaEntidade));
+
+        //salvou
+        verify(repository).save(ciclistaEntidade);
+    }
+
+    @Test
+    @DisplayName("Deve lançar exceção se o cartão for reprovado pela validação externa")
+    void deveFalharSeCartaoInvalido() {
+        Long id = 1L;
+        CartaoDeCreditoDTO novoCartao = new CartaoDeCreditoDTO();
+
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+
+        //validação falsa
+        when(validacaoCartaoService.validarCartao(any())).thenReturn(false);
+
+        DadosInvalidosException ex = assertThrows(DadosInvalidosException.class, () ->
+                service.alterarCartao(id, novoCartao)
+        );
+
+        assertEquals("O cartão de crédito foi reprovado pela operadora.", ex.getMessage());
+
+        // Garante que NÃO salvou
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve lançar 404 ao tentar alterar cartão de ciclista inexistente")
+    void deveFalharAlterarCartaoIdInexistente() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNaoEncontradoException.class, () ->
+                service.alterarCartao(99L, new CartaoDeCreditoDTO())
+        );
     }
 }

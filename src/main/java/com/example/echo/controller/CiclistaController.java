@@ -2,6 +2,7 @@ package com.example.echo.controller;
 
 import com.example.echo.dto.CiclistaDTO;
 import com.example.echo.dto.CiclistaPostDTO;
+import com.example.echo.dto.CiclistaPutDTO;
 import com.example.echo.service.CiclistaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -50,5 +51,21 @@ public class CiclistaController {
         CiclistaDTO ciclistaAtivo = service.ativarCiclista(idCiclista);
 
         return ResponseEntity.ok(ciclistaAtivo);//retorna 200
+    }
+
+    // GET /ciclista/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<CiclistaDTO> buscarCiclista(@PathVariable Long id) {
+        CiclistaDTO dto = service.buscarCiclista(id);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{idCiclista}")
+    public ResponseEntity<CiclistaDTO> atualizarCiclista(
+            @PathVariable Long idCiclista,
+            @Valid @RequestBody CiclistaPutDTO dados
+    ){
+        CiclistaDTO ciclistaAtualizado = service.atualizarCiclista(idCiclista,dados);
+        return ResponseEntity.ok(ciclistaAtualizado);
     }
 }

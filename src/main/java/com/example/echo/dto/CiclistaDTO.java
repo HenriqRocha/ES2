@@ -16,6 +16,7 @@ public class CiclistaDTO {
     private String email;
     private StatusCiclista status;
 
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

@@ -1,6 +1,7 @@
 package com.example.echo.controller;
 
 import com.example.echo.dto.CartaoDeCreditoDTO;
+import com.example.echo.dto.CiclistaPutDTO;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.exception.GlobalHandlerException;
 import com.example.echo.exception.RecursoNaoEncontradoException;
@@ -23,8 +24,7 @@ import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = {CiclistaController.class, GlobalHandlerException.class})
@@ -40,6 +40,7 @@ class CiclistaControllerTest {
     private ObjectMapper objectMapper; //Para converter DTOs em JSON
 
     private CiclistaPostDTO ciclistaPostDTO;
+    private CiclistaPutDTO ciclistaPutDTO;
     private CiclistaDTO ciclistaDTO;
     private String ciclistaPostDTOJson;
 
@@ -60,6 +61,12 @@ class CiclistaControllerTest {
         ciclistaPostDTO.setEmail("teste.valido@email.com");
         ciclistaPostDTO.setSenha("senha123"); //R2
         ciclistaPostDTO.setConfirmacaoSenha("senha123");//R2)
+
+        // DTO de atualização
+        ciclistaPutDTO = new CiclistaPutDTO();
+        ciclistaPutDTO.setNome("Nome Atualizado");
+        ciclistaPutDTO.setSenha("123");
+        ciclistaPutDTO.setConfirmacaoSenha("123");
 
         //meio de pagamento
         CartaoDeCreditoDTO cartaoDTO = new CartaoDeCreditoDTO();
@@ -205,6 +212,88 @@ class CiclistaControllerTest {
         mockMvc.perform(post("/ciclista/{id}/ativar", idExistente))
                 .andExpect(status().isUnprocessableEntity()) // Espera 422
                 .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY"))
+                .andExpect(jsonPath("$.mensagem").value(msgErro));
+    }
+
+    // get ciclista
+    @Test
+    @DisplayName("GET /ciclista/{id} - Deve retornar ciclista com sucesso (200 OK)")
+    void deveRetornarCiclistaPorId() throws Exception {
+        Long id = 1L;
+        // Configura o mock para retornar o DTO que já está no setUp()
+        when(service.buscarCiclista(id)).thenReturn(ciclistaDTO);
+
+        mockMvc.perform(get("/ciclista/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.email").value("teste.valido@email.com"));
+    }
+
+    @Test
+    @DisplayName("GET /ciclista/{id} - Deve retornar 404 se não encontrar")
+    void deveRetornar404AoBuscarCiclista() throws Exception {
+        Long idInexistente = 99L;
+        String msgErro = "Ciclista não encontrado";
+
+        when(service.buscarCiclista(idInexistente))
+                .thenThrow(new RecursoNaoEncontradoException(msgErro));
+
+        mockMvc.perform(get("/ciclista/{id}", idInexistente))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensagem").value(msgErro));
+    }
+
+
+    // testes de PUT
+    @Test
+    @DisplayName("PUT /ciclista/{id} - Deve retornar 200 OK ao atualizar com sucesso")
+    void deveRetornar200AoAtualizarCiclista() throws Exception {
+        Long idCiclista = 1L;
+
+        // Configura o mock do service para retornar o DTO atualizado
+        // Note que usamos eq(idCiclista) e any(CiclistaPutDTO.class)
+        when(service.atualizarCiclista(any(Long.class), any(CiclistaPutDTO.class)))
+                .thenReturn(ciclistaDTO);
+
+        mockMvc.perform(put("/ciclista/{id}", idCiclista)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(ciclistaPutDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.email").value("teste.valido@email.com"));
+    }
+
+    @Test
+    @DisplayName("PUT /ciclista/{id} - Deve retornar 422 Unprocessable Entity se validação falhar (ex: Senhas diferentes)")
+    void deveRetornar422SeSenhasDiferentes() throws Exception {
+        Long idCiclista = 1L;
+
+        // Força dados inválidos no DTO
+        ciclistaPutDTO.setSenha("123");
+        ciclistaPutDTO.setConfirmacaoSenha("456"); // Diferentes! Vai acionar @SenhasIguais
+
+        mockMvc.perform(put("/ciclista/{id}", idCiclista)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(ciclistaPutDTO)))
+                .andExpect(status().isUnprocessableEntity()) // Espera 422
+                .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY")); // Valida estrutura do seu erro global
+    }
+
+    @Test
+    @DisplayName("PUT /ciclista/{id} - Deve retornar 404 Not Found se ciclista não existir")
+    void deveRetornar404SeNaoEncontrarParaAtualizar() throws Exception {
+        Long idInexistente = 99L;
+        String msgErro = "Ciclista não encontrado";
+
+        // Simula o service lançando a exceção 404
+        when(service.atualizarCiclista(any(Long.class), any(CiclistaPutDTO.class)))
+                .thenThrow(new RecursoNaoEncontradoException(msgErro));
+
+        mockMvc.perform(put("/ciclista/{id}", idInexistente)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(ciclistaPutDTO)))
+                .andExpect(status().isNotFound()) // Espera 404
+                .andExpect(jsonPath("$.codigo").value("404 NOT_FOUND"))
                 .andExpect(jsonPath("$.mensagem").value(msgErro));
     }
 }
