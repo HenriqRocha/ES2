@@ -11,13 +11,13 @@ public class CiclistaDTO {
     private String nome;
     private LocalDate nascimento;
     private Nacionalidade nacionalidade;
-    private String cpf; // Pode ser nulo se estrangeiro
-    private String passaporte; // Pode ser nulo se brasileiro
+    private String cpf;
+    private String passaporte;
     private String email;
     private StatusCiclista status;
 
 
-    // Getters e Setters
+    //Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getNome() { return nome; }

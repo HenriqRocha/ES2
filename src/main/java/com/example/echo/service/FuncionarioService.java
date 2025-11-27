@@ -76,7 +76,7 @@ public class FuncionarioService {
             funcionarioExistente.setSenha(dto.getSenha());
         }
 
-        // 3. Salva
+        // Salva
         Funcionario funcionarioAtualizado = repository.save(funcionarioExistente);
         return new FuncionarioDTO(funcionarioAtualizado);
     }

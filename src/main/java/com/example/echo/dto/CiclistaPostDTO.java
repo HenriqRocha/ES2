@@ -67,5 +67,4 @@ public class CiclistaPostDTO {
     public CartaoDeCreditoDTO getMeioDePagamento() { return meioDePagamento; }
     public void setMeioDePagamento(CartaoDeCreditoDTO meioDePagamento) { this.meioDePagamento = meioDePagamento; }
 
-
 }

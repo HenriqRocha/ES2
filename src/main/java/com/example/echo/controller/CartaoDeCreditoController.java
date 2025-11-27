@@ -20,7 +20,7 @@ public class CartaoDeCreditoController {
     public ResponseEntity<CartaoDeCreditoDTO> buscarCartao(@PathVariable Long idCiclista) {
         CartaoDeCreditoDTO cartao = ciclistaService.buscarCartao(idCiclista);
 
-        // Se retornar nulo (ciclista sem cartão), o body vai vazio, mas status 200 OK
+        //200 com body vazio
         return ResponseEntity.ok(cartao);
     }
 

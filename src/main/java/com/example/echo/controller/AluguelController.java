@@ -30,19 +30,19 @@ public class AluguelController {
         return ResponseEntity.status(HttpStatus.OK).body(aluguelCriado);
     }
 
-    // GET /ciclista/{idCiclista}/permiteAluguel
+    //GET /ciclista/{idCiclista}/permiteAluguel
     @GetMapping("/ciclista/{idCiclista}/permiteAluguel")
     public ResponseEntity<Boolean> permiteAluguel(@PathVariable Long idCiclista) {
         boolean podeAlugar = aluguelService.permiteAluguel(idCiclista);
         return ResponseEntity.ok(podeAlugar);
     }
 
-    // GET /ciclista/{idCiclista}/bicicletaAlugada
+    //GET /ciclista/{idCiclista}/bicicletaAlugada
     @GetMapping("/ciclista/{idCiclista}/bicicletaAlugada")
     public ResponseEntity<BicicletaDTO> buscarBicicletaAlugada(@PathVariable Long idCiclista) {
         BicicletaDTO bicicleta = aluguelService.buscarBicicletaAlugada(idCiclista);
 
-        // Retorna 200 OK mesmo que seja null (body vazio), conforme swagger
+        //200
         return ResponseEntity.ok(bicicleta);
     }
 

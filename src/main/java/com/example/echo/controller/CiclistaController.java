@@ -19,14 +19,12 @@ import javax.validation.Valid;
 @RequestMapping("/ciclista")
 public class CiclistaController {
 
-    // Injeta a lógica
     @Autowired
     private CiclistaService service;
 
-    // UC01 A1
+    //UC01 A1
     @GetMapping("/existeEmail/{email}")
     public ResponseEntity<Boolean> verificarEmailExistente(
-            //pega o email da url
             @PathVariable String email
     ) {
         boolean existe = service.existeEmail(email);
@@ -53,7 +51,7 @@ public class CiclistaController {
         return ResponseEntity.ok(ciclistaAtivo);//retorna 200
     }
 
-    // GET /ciclista/{id}
+    //GET /ciclista/{id}
     @GetMapping("/{id}")
     public ResponseEntity<CiclistaDTO> buscarCiclista(@PathVariable Long id) {
         CiclistaDTO dto = service.buscarCiclista(id);

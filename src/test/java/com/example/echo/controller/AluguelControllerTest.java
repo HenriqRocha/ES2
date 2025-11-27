@@ -89,7 +89,7 @@ class AluguelControllerTest {
     @DisplayName("POST /aluguel - Deve retornar 422 se DTO for inválido (Validação @NotNull)")
     void deveRetornar422SeDtoInvalido() throws Exception {
         NovoAluguelDTO invalido = new NovoAluguelDTO();
-        // CiclistaID e TrancaID nulos
+        //CiclistaID e TrancaID nulos
 
         mockMvc.perform(post("/aluguel")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,14 +104,14 @@ class AluguelControllerTest {
         dto.setCiclistaId(1L);
         dto.setTrancaFimId(20L);
 
-        // Mock do retorno do service (usando o objeto aluguelDTO que já está no setUp)
+        //Mock do retorno do service (usando o objeto aluguelDTO que já ta no setUp)
         when(aluguelService.realizarDevolucao(any(DevolucaoDTO.class))).thenReturn(aluguelDTO);
 
         mockMvc.perform(post("/aluguel/devolucao")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(100L)); // Verifica ID do aluguel devolvido
+                .andExpect(jsonPath("$.id").value(100L)); //Verifica ID do aluguel devolvido
     }
 
     @Test

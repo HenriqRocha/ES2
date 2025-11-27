@@ -28,7 +28,7 @@ public class CartaoDeCredito {
         //precisa do contrutor vazio para o JPA
     }
 
-    // --- GETTERS E SETTERS ---
+    //Getters e Setters
     public Long getId() {
         return id;
     }

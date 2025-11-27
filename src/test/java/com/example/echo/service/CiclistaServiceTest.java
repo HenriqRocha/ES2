@@ -320,10 +320,10 @@ class CiclistaServiceTest {
         when(ciclistaMapper.toDTO(any(Ciclista.class))).thenReturn(ciclistaDTO);
         doNothing().when(emailService).enviarEmail(any(), any(), any());
 
-        // 2. Ação
+        //Ação
         service.atualizarCiclista(id, ciclistaPutDTO);
 
-        // 3. Verificação
+        //Verificação
         assertEquals("Nome Atualizado", ciclistaEntidade.getNome()); // Veio do DTO
         assertEquals("12345678901", ciclistaEntidade.getCpf());    // Manteve o original
 
@@ -505,7 +505,7 @@ class CiclistaServiceTest {
 
         assertEquals("O cartão de crédito foi reprovado pela operadora.", ex.getMessage());
 
-        // Garante que NÃO salvou
+        // Garante que nao salvou
         verify(repository, never()).save(any());
     }
 

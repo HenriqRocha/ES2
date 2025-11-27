@@ -171,14 +171,10 @@ public class CiclistaService {
         return ciclistaMapper.toDTO(salvo);
     }
 
-    // GET: Recupera os dados do cartão
+    // GETRecupera os dados do cartão
     public CartaoDeCreditoDTO buscarCartao(Long idCiclista) {
         Ciclista ciclista = repository.findById(idCiclista)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
-
-        // Assumindo que na tua Entidade Ciclista tens os campos do cartão
-        // ou um objeto embutido. Aqui uso o Mapper para extrair apenas a parte do cartão.
-        // Se não tiveres um método específico no mapper, podes criar manual:
 
         CartaoDeCreditoDTO dto = new CartaoDeCreditoDTO();
         dto.setNomeTitular(ciclista.getCartaoDeCredito().getNomeTitular());
@@ -189,12 +185,12 @@ public class CiclistaService {
         return dto;
     }
 
-    // PUT: Altera o cartão
+    // PUT: altera cartão
     public void alterarCartao(Long idCiclista, CartaoDeCreditoDTO novoCartao) {
         Ciclista ciclista = repository.findById(idCiclista)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
 
-        // 1. Validação externa
+        //valida
         boolean cartaoValido = validacaoCartaoService.validarCartao(novoCartao);
         if (!cartaoValido) {
             throw new DadosInvalidosException("O cartão de crédito foi reprovado pela operadora.");

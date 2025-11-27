@@ -12,7 +12,7 @@ public class DadosController {
     @Autowired
     private AluguelService aluguelService;
 
-    // GET /restaurarBanco
+    //GET /restaurarBanco
     @GetMapping("/restaurarBanco")
     public ResponseEntity<Void> restaurarBanco() {
         aluguelService.restaurarBanco();

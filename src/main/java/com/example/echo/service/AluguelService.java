@@ -102,29 +102,29 @@ public class AluguelService {
     }
 
     public AluguelDTO realizarDevolucao(DevolucaoDTO dto) {
-        // 1. Validar e Buscar Aluguel Ativo
+        //validar e buscar aluguel ativo , sem fim
         Aluguel aluguel = aluguelRepository.findByCiclistaIdAndHoraFimIsNull(dto.getCiclistaId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Não há aluguel em andamento para este ciclista."));
 
-        // 2. Definir dados de término
+        //Definir fim
         aluguel.setHoraFim(LocalDateTime.now());
         aluguel.setTrancaFim(dto.getTrancaFimId());
 
-        // 3. Calcular Valor a Pagar [Fluxo Principal 3] [R1] [A1]
-        // Regra: 2 horas (120 min) grátis (já pagas). Extra: R$ 5,00 por fração de 30min.
+        //calcula valor
+        //2 horas preço fixo + 5 reais por meia hora
         long minutosTotais = ChronoUnit.MINUTES.between(aluguel.getHoraInicio(), aluguel.getHoraFim());
         double custoExtra = 0.0;
 
         if (minutosTotais > 120) { // [A1] Excedeu 2 horas
             long minutosExcedentes = minutosTotais - 120;
-            // Math.ceil arredonda para cima (ex: 1 min extra = 1 bloco de 30 = R$ 5,00)
+            //arredonda pra cima
             double blocosMeiaHora = Math.ceil(minutosExcedentes / 30.0);
             custoExtra = blocosMeiaHora * 5.00;
         }
 
         aluguel.setValorExtra(custoExtra);
 
-        // 4. Cobrança Extra [A1.1] [A1.2]
+        //cobra o extra
         if (custoExtra > 0) {
             boolean pagamentoAprovado = cobrancaService.autorizarPagamento(
                     aluguel.getCiclista().getCartaoDeCredito().getNumero(),
@@ -132,30 +132,27 @@ public class AluguelService {
             );
 
             if (!pagamentoAprovado) {
-                // [A2] Erro no pagamento -> Registra pendência
+                //cobrança pendente
                 cobrancaService.registrarCobrancaPendente(aluguel.getCiclista().getId(), custoExtra);
             }
-            // Se aprovado, segue fluxo normal [A1.3]
         }
 
-        // 5. Atualizar Status da Bicicleta [Fluxo Principal 5] ou [A3]
+        //atualiza bike
         String novoStatusBike = "DISPONIVEL";
 
-        if (dto.isDefeito()) { // [A3] Ator requisitou reparo
-            novoStatusBike = "EM_REPARO"; // ou "REPARO_SOLICITADO"
-            // [A3.1] O sistema registra requisição (aqui simulado apenas pela mudança de status)
+        if (dto.isDefeito()) { //pediu reparo
+            novoStatusBike = "EM_REPARO";
         }
 
-        // Chama serviço externo de equipamento
+        //Chama serviço externo de equipamento falso
         equipamentoService.alterarStatusBicicleta(aluguel.getBicicleta(), novoStatusBike);
 
-        // 6. Fechar a Tranca [Fluxo Principal 6]
         equipamentoService.trancarTranca(dto.getTrancaFimId());
 
-        // 7. Salvar Devolução [Fluxo Principal 4]
+        //salva
         Aluguel salvo = aluguelRepository.save(aluguel);
 
-        // 8. Enviar Email [Fluxo Principal 7] [R3]
+        //notificação
         String mensagem = String.format(
                 "Devolução realizada na tranca %d.\nTempo total: %d min.\nCusto extra: R$ %.2f\nStatus Bike: %s",
                 salvo.getTrancaFim(),
@@ -168,51 +165,43 @@ public class AluguelService {
         return new AluguelDTO(salvo);
     }
 
-    // 1. Lógica para /ciclista/{id}/permiteAluguel
     public boolean permiteAluguel(Long ciclistaId) {
-        // Verifica se ciclista existe (Swagger pede 404)
         Ciclista ciclista = ciclistaRepository.findById(ciclistaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
 
-        // Regra: Só pode alugar se estiver ATIVO
+        //só pode alugar ativo
         if (ciclista.getStatus() != StatusCiclista.ATIVO) {
             return false;
         }
 
-        // Regra: Só pode alugar se NÃO tiver aluguel em aberto
+        //não pode alugar ao mesmo tempo
         boolean temAluguelAtivo = aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(ciclistaId);
 
-        return !temAluguelAtivo; // Retorna TRUE se não tiver aluguel (pode alugar)
+        return !temAluguelAtivo; //TRUE se não tiver aluguel (pode alugar)
     }
 
-    // 2. Lógica para /ciclista/{id}/bicicletaAlugada
     public BicicletaDTO buscarBicicletaAlugada(Long ciclistaId) {
-        // Verifica se ciclista existe (Swagger pede 404)
         if (!ciclistaRepository.existsById(ciclistaId)) {
             throw new RecursoNaoEncontradoException("Ciclista não encontrado");
         }
 
-        // Busca aluguel ativo
+        //busca aluguel
         Optional<Aluguel> aluguelOpt = aluguelRepository.findByCiclistaIdAndHoraFimIsNull(ciclistaId);
 
         if (aluguelOpt.isPresent()) {
-            // Se tem aluguel, retorna a bicicleta correspondente
+            //retorna a bike do aluguel
             Long idBike = aluguelOpt.get().getBicicleta();
-            // Retornamos um DTO simples com o ID e status "EM_USO" (pois está alugada)
             return new BicicletaDTO(idBike, "EM_USO");
         }
 
-        // Se não tem aluguel, retorna null (o controller vai tratar isso como body vazio)
+        //se não tiver
         return null;
     }
 
-    // 3. Lógica para /restaurarBanco (Reset total)
+    //
     public void restaurarBanco() {
-        // A ordem importa por causa das chaves estrangeiras!
-        // Primeiro apaga os alugueis (filhos)
         aluguelRepository.deleteAll();
 
-        // Depois apaga os ciclistas (pais)
         ciclistaRepository.deleteAll();
     }
 }

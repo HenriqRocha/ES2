@@ -79,13 +79,13 @@ public class CiclistaMapper {
         CartaoDeCredito cartao = ciclista.getCartaoDeCredito();
 
         if (cartao == null) {
-            // Se o ciclista ainda não tem cartão, cria um novo usando seu método existente
+            //se aind não tem cria um novo
             cartao = toCartaoEntity(dto);
-            // Garante o vínculo bidirecional (importante para o JPA)
+            //atrela o cartao ao ciclista
             cartao.setCiclista(ciclista);
             ciclista.setCartaoDeCredito(cartao);
         } else {
-            // Se já tem, atualizamos apenas os dados (mantendo o ID do cartão)
+            //atualiza
             cartao.setNomeTitular(dto.getNomeTitular());
             cartao.setNumero(dto.getNumero());
             cartao.setValidade(dto.getValidade());

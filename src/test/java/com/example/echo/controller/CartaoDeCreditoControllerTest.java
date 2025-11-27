@@ -63,14 +63,12 @@ class CartaoDeCreditoControllerTest {
     void deveAtualizarCartao() throws Exception {
         Long id = 1L;
 
-        // O método no service é void, então usamos doNothing (padrão do mockito para voids)
-        // Mas podemos forçar para garantir
         doNothing().when(service).alterarCartao(eq(id), any(CartaoDeCreditoDTO.class));
 
         mockMvc.perform(put("/cartaoDeCredito/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(cartaoDTO)))
-                .andExpect(status().isOk()); // Espera 200 OK sem corpo
+                .andExpect(status().isOk()); // Espera 200
     }
 
     @Test

@@ -103,9 +103,9 @@ class FuncionarioControllerTest {
         mockMvc.perform(post("/funcionario")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dtoInvalido)))
-                // Verifica se o status é 422
+                // 422
                 .andExpect(status().isUnprocessableEntity())
-                // Verifica se a resposta de erro (do GlobalExceptionHandler) está correta
+                //exceção correta
                 .andExpect(jsonPath("$.codigo").value("422 UNPROCESSABLE_ENTITY"))
                 .andExpect(jsonPath("$.mensagem").value("Campo obrigatório"));
     }
@@ -129,9 +129,9 @@ class FuncionarioControllerTest {
                 .thenThrow(new RecursoNaoEncontradoException("Funcionário não encontrado"));
 
         mockMvc.perform(get("/funcionario/{id}", idInexistente))
-                // Verifica se o status é 404
+                //404
                 .andExpect(status().isNotFound())
-                // Verifica se o GlobalExceptionHandler formatou o erro
+                //checa se o saiu o erro certo
                 .andExpect(jsonPath("$.codigo").value("404 NOT_FOUND"))
                 .andExpect(jsonPath("$.mensagem").value("Funcionário não encontrado"));
     }
@@ -169,6 +169,6 @@ class FuncionarioControllerTest {
         doNothing().when(service).deletarFuncionario(idExistente);
 
         mockMvc.perform(delete("/funcionario/{id}", idExistente))
-                .andExpect(status().isOk()); // O controller retorna 200
+                .andExpect(status().isOk()); //200
     }
 }
