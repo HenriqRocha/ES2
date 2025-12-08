@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = {AluguelController.class, GlobalHandlerException.class})
+@WebMvcTest(controllers = {AluguelController.class, GlobalHandlerException.class, DevolucaoController.class})
 class AluguelControllerTest {
 
     @Autowired
@@ -102,7 +102,7 @@ class AluguelControllerTest {
     }
 
     @Test
-    @DisplayName("POST /aluguel/devolucao - Deve finalizar aluguel com sucesso (200 OK)")
+    @DisplayName("POST/devolucao - Deve finalizar aluguel com sucesso (200 OK)")
     void deveRealizarDevolucaoComSucesso() throws Exception {
         DevolucaoDTO dto = new DevolucaoDTO();
         dto.setCiclistaId(1L);
@@ -111,32 +111,11 @@ class AluguelControllerTest {
         //Mock do retorno do service (usando o objeto aluguelDTO que já ta no setUp)
         when(aluguelService.realizarDevolucao(any(DevolucaoDTO.class))).thenReturn(aluguelDTO);
 
-        mockMvc.perform(post("/aluguel/devolucao")
+        mockMvc.perform(post("/devolucao")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(100L)); //Verifica ID do aluguel devolvido
     }
 
-    @Test
-    @DisplayName("GET /aluguel/ciclista/{id}/permiteAluguel - Deve retornar true")
-    void deveRetornarPermissaoAluguel() throws Exception {
-        when(ciclistaService.permiteAluguel(1L)).thenReturn(true);
-
-        mockMvc.perform(get("/aluguel/ciclista/{id}/permiteAluguel", 1L))
-                .andExpect(status().isOk())
-                .andExpect(content().string("true"));
-    }
-
-    @Test
-    @DisplayName("GET /aluguel/ciclista/{id}/bicicletaAlugada - Deve retornar objeto bicicleta")
-    void deveRetornarBicicletaAlugada() throws Exception {
-        BicicletaDTO bikeDTO = new BicicletaDTO(100L, "EM_USO");
-        when(ciclistaService.buscarBicicletaAlugada(1L)).thenReturn(bikeDTO);
-
-        mockMvc.perform(get("/aluguel/ciclista/{id}/bicicletaAlugada", 1L))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(100L))
-                .andExpect(jsonPath("$.status").value("EM_USO"));
-    }
 }

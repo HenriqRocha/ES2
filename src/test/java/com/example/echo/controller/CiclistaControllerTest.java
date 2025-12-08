@@ -1,15 +1,12 @@
 package com.example.echo.controller;
 
-import com.example.echo.dto.CartaoDeCreditoDTO;
-import com.example.echo.dto.CiclistaPutDTO;
+import com.example.echo.dto.*;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.exception.GlobalHandlerException;
 import com.example.echo.exception.RecursoNaoEncontradoException;
 import com.example.echo.model.Nacionalidade;
 import com.example.echo.model.StatusCiclista;
 import com.example.echo.service.CiclistaService;
-import com.example.echo.dto.CiclistaDTO;
-import com.example.echo.dto.CiclistaPostDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,6 +58,7 @@ class CiclistaControllerTest {
         ciclistaPostDTO.setEmail("teste.valido@email.com");
         ciclistaPostDTO.setSenha("senha123"); //R2
         ciclistaPostDTO.setConfirmacaoSenha("senha123");//R2)
+        ciclistaPostDTO.setUrlFotoDocumento("foto");
 
         // DTO de atualização
         ciclistaPutDTO = new CiclistaPutDTO();
@@ -292,5 +290,27 @@ class CiclistaControllerTest {
                 .andExpect(status().isNotFound()) // 404
                 .andExpect(jsonPath("$.codigo").value("404 NOT_FOUND"))
                 .andExpect(jsonPath("$.mensagem").value(msgErro));
+    }
+
+    @Test
+    @DisplayName("GET /ciclista/{id}/permiteAluguel - Deve retornar true")
+    void deveRetornarPermissaoAluguel() throws Exception {
+        when(service.permiteAluguel(1L)).thenReturn(true);
+
+        mockMvc.perform(get("/ciclista/{id}/permiteAluguel", 1L))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+    }
+
+    @Test
+    @DisplayName("GET /ciclista/{id}/bicicletaAlugada - Deve retornar objeto bicicleta")
+    void deveRetornarBicicletaAlugada() throws Exception {
+        BicicletaDTO bikeDTO = new BicicletaDTO(100L, "EM_USO");
+        when(service.buscarBicicletaAlugada(1L)).thenReturn(bikeDTO);
+
+        mockMvc.perform(get("/ciclista/{id}/bicicletaAlugada", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100L))
+                .andExpect(jsonPath("$.status").value("EM_USO"));
     }
 }

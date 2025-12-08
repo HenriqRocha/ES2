@@ -20,7 +20,7 @@ public class DevolucaoController {
     private AluguelService service;
 
     //POST aluguel/devolucao UC04
-    @PostMapping("/devolucao")
+    @PostMapping()
     public ResponseEntity<AluguelDTO> realizarDevolucao(
             @Valid @RequestBody DevolucaoDTO devolucaoDTO
     ) {
