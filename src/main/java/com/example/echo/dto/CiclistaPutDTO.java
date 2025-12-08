@@ -27,6 +27,8 @@ public class CiclistaPutDTO {
 
     private String confirmacaoSenha;
 
+    private String urlFotoDocumento;
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getCpf() { return cpf; }
@@ -39,4 +41,6 @@ public class CiclistaPutDTO {
     public void setSenha(String senha) { this.senha = senha; }
     public String getConfirmacaoSenha() { return confirmacaoSenha; }
     public void setConfirmacaoSenha(String confirmacaoSenha) { this.confirmacaoSenha = confirmacaoSenha; }
+    public String getUrlFotoDocumento(){ return urlFotoDocumento;}
+    public void setUrlFotoDocumento(String urlFotoDocumento){ this.urlFotoDocumento = urlFotoDocumento;}
 }

@@ -24,6 +24,7 @@ public class CiclistaMapper {
         ciclista.setNacionalidade(dto.getNacionalidade());
         ciclista.setEmail(dto.getEmail());
         ciclista.setSenha(dto.getSenha());
+        ciclista.setUrlFotoDocumento(dto.getUrlFotoDocumento());
 
         //R1
         if (dto.getNacionalidade() == Nacionalidade.BRASILEIRO) {
@@ -56,6 +57,7 @@ public class CiclistaMapper {
         dto.setPassaporte(entity.getPassaporteNumero());
         dto.setEmail(entity.getEmail());
         dto.setStatus(entity.getStatus());
+        dto.setUrlFotoDocumento(entity.getUrlFotoDocumento());
 
         return dto;
     }

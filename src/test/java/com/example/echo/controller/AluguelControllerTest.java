@@ -7,6 +7,7 @@ import com.example.echo.dto.DevolucaoDTO;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.exception.GlobalHandlerException;
 import com.example.echo.service.AluguelService;
+import com.example.echo.service.CiclistaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,9 @@ class AluguelControllerTest {
 
     @MockBean
     private AluguelService aluguelService;
+
+    @MockBean
+    private CiclistaService ciclistaService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -117,7 +121,7 @@ class AluguelControllerTest {
     @Test
     @DisplayName("GET /aluguel/ciclista/{id}/permiteAluguel - Deve retornar true")
     void deveRetornarPermissaoAluguel() throws Exception {
-        when(aluguelService.permiteAluguel(1L)).thenReturn(true);
+        when(ciclistaService.permiteAluguel(1L)).thenReturn(true);
 
         mockMvc.perform(get("/aluguel/ciclista/{id}/permiteAluguel", 1L))
                 .andExpect(status().isOk())
@@ -128,7 +132,7 @@ class AluguelControllerTest {
     @DisplayName("GET /aluguel/ciclista/{id}/bicicletaAlugada - Deve retornar objeto bicicleta")
     void deveRetornarBicicletaAlugada() throws Exception {
         BicicletaDTO bikeDTO = new BicicletaDTO(100L, "EM_USO");
-        when(aluguelService.buscarBicicletaAlugada(1L)).thenReturn(bikeDTO);
+        when(ciclistaService.buscarBicicletaAlugada(1L)).thenReturn(bikeDTO);
 
         mockMvc.perform(get("/aluguel/ciclista/{id}/bicicletaAlugada", 1L))
                 .andExpect(status().isOk())

@@ -1,21 +1,21 @@
 package com.example.echo.service;
 
-import com.example.echo.dto.CartaoDeCreditoDTO;
-import com.example.echo.dto.CiclistaPutDTO;
+import com.example.echo.dto.*;
 import com.example.echo.model.CartaoDeCredito;
 import com.example.echo.model.Ciclista;
 import com.example.echo.model.Nacionalidade;
 import com.example.echo.model.StatusCiclista;
+import com.example.echo.model.Aluguel;
 
 import java.time.LocalDateTime;
 import com.example.echo.exception.RecursoNaoEncontradoException;
 import com.example.echo.exception.DadosInvalidosException;
+import com.example.echo.repository.AluguelRepository;
 import com.example.echo.repository.CiclistaRepository;
-import com.example.echo.dto.CiclistaDTO;
-import com.example.echo.dto.CiclistaPostDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,6 +24,9 @@ public class CiclistaService {
 
     @Autowired
     private CiclistaRepository repository;
+
+    @Autowired
+    private AluguelRepository aluguelRepository;
 
     @Autowired
     private CiclistaMapper ciclistaMapper;//tradutor
@@ -119,6 +122,10 @@ public class CiclistaService {
             ciclista.setNome(dados.getNome());
         }
 
+        if (dados.getUrlFotoDocumento() != null){
+            ciclista.setUrlFotoDocumento(dados.getUrlFotoDocumento());
+        }
+
         //valida a senha pelo @senhasiguais
         if (dados.getSenha() != null && !dados.getSenha().isBlank()){
             ciclista.setSenha(dados.getSenha());
@@ -206,6 +213,39 @@ public class CiclistaService {
         } catch (Exception e) {
             System.err.println("Erro email: " + e.getMessage());
         }
+    }
+
+    public boolean permiteAluguel(Long ciclistaId) {
+        Ciclista ciclista = repository.findById(ciclistaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
+
+        //só pode alugar ativo
+        if (ciclista.getStatus() != StatusCiclista.ATIVO) {
+            return false;
+        }
+
+        //não pode alugar ao mesmo tempo
+        boolean temAluguelAtivo = aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(ciclistaId);
+
+        return !temAluguelAtivo; //TRUE se não tiver aluguel (pode alugar)
+    }
+
+    public BicicletaDTO buscarBicicletaAlugada(Long ciclistaId) {
+        if (!repository.existsById(ciclistaId)) {
+            throw new RecursoNaoEncontradoException("Ciclista não encontrado");
+        }
+
+        //busca aluguel
+        Optional<Aluguel> aluguelOpt = aluguelRepository.findByCiclistaIdAndHoraFimIsNull(ciclistaId);
+
+        if (aluguelOpt.isPresent()) {
+            //retorna a bike do aluguel
+            Long idBike = aluguelOpt.get().getBicicleta();
+            return new BicicletaDTO(idBike, "EM_USO");
+        }
+
+        //se não tiver
+        return null;
     }
 
     //métodos auxiliares

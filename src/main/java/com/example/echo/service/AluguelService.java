@@ -165,39 +165,6 @@ public class AluguelService {
         return new AluguelDTO(salvo);
     }
 
-    public boolean permiteAluguel(Long ciclistaId) {
-        Ciclista ciclista = ciclistaRepository.findById(ciclistaId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
-
-        //só pode alugar ativo
-        if (ciclista.getStatus() != StatusCiclista.ATIVO) {
-            return false;
-        }
-
-        //não pode alugar ao mesmo tempo
-        boolean temAluguelAtivo = aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(ciclistaId);
-
-        return !temAluguelAtivo; //TRUE se não tiver aluguel (pode alugar)
-    }
-
-    public BicicletaDTO buscarBicicletaAlugada(Long ciclistaId) {
-        if (!ciclistaRepository.existsById(ciclistaId)) {
-            throw new RecursoNaoEncontradoException("Ciclista não encontrado");
-        }
-
-        //busca aluguel
-        Optional<Aluguel> aluguelOpt = aluguelRepository.findByCiclistaIdAndHoraFimIsNull(ciclistaId);
-
-        if (aluguelOpt.isPresent()) {
-            //retorna a bike do aluguel
-            Long idBike = aluguelOpt.get().getBicicleta();
-            return new BicicletaDTO(idBike, "EM_USO");
-        }
-
-        //se não tiver
-        return null;
-    }
-
     //
     public void restaurarBanco() {
         aluguelRepository.deleteAll();

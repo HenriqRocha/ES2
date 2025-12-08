@@ -1,5 +1,6 @@
 package com.example.echo.controller;
 
+import com.example.echo.dto.BicicletaDTO;
 import com.example.echo.dto.CiclistaDTO;
 import com.example.echo.dto.CiclistaPostDTO;
 import com.example.echo.dto.CiclistaPutDTO;
@@ -65,5 +66,21 @@ public class CiclistaController {
     ){
         CiclistaDTO ciclistaAtualizado = service.atualizarCiclista(idCiclista,dados);
         return ResponseEntity.ok(ciclistaAtualizado);
+    }
+
+    //GET /ciclista/{idCiclista}/permiteAluguel
+    @GetMapping("/{idCiclista}/permiteAluguel")
+    public ResponseEntity<Boolean> permiteAluguel(@PathVariable Long idCiclista) {
+        boolean podeAlugar = service.permiteAluguel(idCiclista);
+        return ResponseEntity.ok(podeAlugar);
+    }
+
+    //GET /ciclista/{idCiclista}/bicicletaAlugada   TENHO QUE CORRIGIR COM A INTEGRAÇÃO
+    @GetMapping("/{idCiclista}/bicicletaAlugada")
+    public ResponseEntity<BicicletaDTO> buscarBicicletaAlugada(@PathVariable Long idCiclista) {
+        BicicletaDTO bicicleta = service.buscarBicicletaAlugada(idCiclista);
+
+        //200
+        return ResponseEntity.ok(bicicleta);
     }
 }

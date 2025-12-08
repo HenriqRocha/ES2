@@ -3,6 +3,7 @@ package com.example.echo.exception;
 import com.example.echo.dto.ErroDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -51,5 +52,15 @@ public class GlobalHandlerException {
         return new ResponseEntity<>(erro, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+
+        //bad request
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ErroDTO> handleJsonErrors(HttpMessageNotReadableException ex) {
+
+            // Retorna 404 (NOT_FOUND) conforme a sua documentação pede
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new ErroDTO("404", "Requisição mal formada"));
+        }
 
 }

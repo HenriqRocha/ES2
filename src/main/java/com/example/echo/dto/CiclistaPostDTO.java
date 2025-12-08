@@ -42,6 +42,9 @@ public class CiclistaPostDTO {
     @NotBlank(message = "Senha é obrigatória")
     private String confirmacaoSenha;
 
+    @NotBlank(message = "Link do documento é obrigatório")
+    private String urlFotoDocumento;
+
     //cartao
     @NotNull(message = "Meio de pagamento é obrigatório")
     @Valid
@@ -64,6 +67,9 @@ public class CiclistaPostDTO {
     public void setSenha(String senha) { this.senha = senha; }
     public String getConfirmacaoSenha() { return confirmacaoSenha; }
     public void setConfirmacaoSenha(String confirmacaoSenha) { this.confirmacaoSenha = confirmacaoSenha; }
+
+    public String getUrlFotoDocumento(){ return urlFotoDocumento;}
+    public void setUrlFotoDocumento( String urlFotoDocumento) { this.urlFotoDocumento = urlFotoDocumento;}
     public CartaoDeCreditoDTO getMeioDePagamento() { return meioDePagamento; }
     public void setMeioDePagamento(CartaoDeCreditoDTO meioDePagamento) { this.meioDePagamento = meioDePagamento; }
 

@@ -43,6 +43,8 @@ class AluguelServiceTest {
     @InjectMocks
     private AluguelService service;
 
+    @InjectMocks CiclistaService ciclistaService;
+
     private Ciclista ciclistaAtivo;
     private NovoAluguelDTO novoAluguelDTO;
     private BicicletaDTO bicicletaDisponivel;
@@ -339,7 +341,7 @@ class AluguelServiceTest {
         //  Não tem aluguel aberto
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
 
-        assertTrue(service.permiteAluguel(1L));
+        assertTrue(ciclistaService.permiteAluguel(1L));
     }
 
     @Test
@@ -348,7 +350,7 @@ class AluguelServiceTest {
         ciclistaAtivo.setStatus(StatusCiclista.AGUARDANDO_CONFIRMACAO);
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
 
-        assertFalse(service.permiteAluguel(1L));
+        assertFalse(ciclistaService.permiteAluguel(1L));
     }
 
     @Test
@@ -358,7 +360,7 @@ class AluguelServiceTest {
         //ja tem
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(true);
 
-        assertFalse(service.permiteAluguel(1L));
+        assertFalse(ciclistaService.permiteAluguel(1L));
     }
 
     @Test
@@ -371,7 +373,7 @@ class AluguelServiceTest {
         aluguel.setBicicleta(100L);
         when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguel));
 
-        BicicletaDTO dto = service.buscarBicicletaAlugada(1L);
+        BicicletaDTO dto = ciclistaService.buscarBicicletaAlugada(1L);
 
         assertNotNull(dto);
         assertEquals(100L, dto.getId());

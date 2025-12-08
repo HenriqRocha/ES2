@@ -12,10 +12,11 @@ public class DadosController {
     @Autowired
     private AluguelService aluguelService;
 
+
     //GET /restaurarBanco
     @GetMapping("/restaurarBanco")
-    public ResponseEntity<Void> restaurarBanco() {
+    public ResponseEntity<String> restaurarBanco() {
         aluguelService.restaurarBanco();
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body("Banco restaurado");
     }
 }

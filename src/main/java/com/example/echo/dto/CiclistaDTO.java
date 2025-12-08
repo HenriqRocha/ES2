@@ -15,6 +15,7 @@ public class CiclistaDTO {
     private String passaporte;
     private String email;
     private StatusCiclista status;
+    private String urlFotoDocumento;
 
 
     //Getters e Setters
@@ -34,4 +35,6 @@ public class CiclistaDTO {
     public void setEmail(String email) { this.email = email; }
     public StatusCiclista getStatus() { return status; }
     public void setStatus(StatusCiclista status) { this.status = status; }
+    public String getUrlFotoDocumento(){ return urlFotoDocumento;}
+    public void setUrlFotoDocumento(String urlFotoDocumento){ this.urlFotoDocumento = urlFotoDocumento;}
 }
