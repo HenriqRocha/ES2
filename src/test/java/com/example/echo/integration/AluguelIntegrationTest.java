@@ -7,6 +7,7 @@ import com.example.echo.dto.NovoAluguelDTO;
 import com.example.echo.dto.externo.CartaoExternoDTO;
 import com.example.echo.dto.externo.TrancaDTO;
 import com.example.echo.model.Ciclista;
+import com.example.echo.model.Nacionalidade;
 import com.example.echo.model.StatusCiclista;
 import com.example.echo.repository.AluguelRepository;
 import com.example.echo.repository.CiclistaRepository;
@@ -59,14 +60,21 @@ public class AluguelIntegrationTest {
 
     @BeforeEach
     void setup() {
+
         aluguelRepository.deleteAll();
         ciclistaRepository.deleteAll();
 
-        // Cria um ciclista real no banco H2 para o teste
+
         Ciclista c = new Ciclista();
         c.setNome("Ciclista Integração");
         c.setEmail("integra@teste.com");
         c.setStatus(StatusCiclista.ATIVO);
+
+        c.setNascimento(java.time.LocalDate.of(1990, 1, 1));
+        c.setNacionalidade(Nacionalidade.BRASILEIRO);
+        c.setCpf("11122233344");
+        c.setSenha("senha123");
+
         ciclistaSalvo = ciclistaRepository.save(c);
     }
 
