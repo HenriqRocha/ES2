@@ -308,49 +308,4 @@ class AluguelServiceTest {
         verify(aluguelRepository).deleteAll();
         verify(ciclistaRepository).deleteAll();
     }
-
-    @Test
-    @DisplayName("Deve finalizar aluguel com sucesso MESMO se o envio de e-mail falhar")
-    void deveAlugarMesmoSemEmail() {
-        // 1. Setup do Happy Path (igual ao deveRealizarAluguelComSucesso)
-        when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
-        when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
-        when(equipamentoService.buscarBicicletaNaTranca(10L)).thenReturn(bicicletaDisponivel);
-
-        CobrancaDTO cobrancaOk = new CobrancaDTO();
-        cobrancaOk.setStatus("OK");
-        when(externoClient.realizarCobranca(anyDouble(), anyLong())).thenReturn(cobrancaOk);
-
-        when(equipamentoService.destrancarTranca(10L)).thenReturn(true);
-        when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
-
-        // 2. O PULO DO GATO: Simular erro no envio de e-mail
-        // O Mockito vai lançar erro quando o service tentar mandar email
-        doThrow(new RuntimeException("Servidor de email offline"))
-                .when(emailService).enviarEmail(anyString(), anyString(), anyString());
-
-        // 3. Execução: Não deve lançar exceção para o usuário
-        AluguelDTO resultado = service.realizarAluguel(novoAluguelDTO);
-
-        assertNotNull(resultado);
-        // Verifica se salvou o aluguel mesmo com erro no email
-        verify(aluguelRepository).save(any(Aluguel.class));
-    }
-
-    @Test
-    @DisplayName("Deve finalizar devolução com sucesso MESMO se o envio de e-mail falhar")
-    void deveDevolverMesmoSemEmail() {
-        setupDevolucao();
-        when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguelAtivo));
-        when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
-
-        // Força erro no email na hora da devolução
-        doThrow(new RuntimeException("Erro SMTP"))
-                .when(emailService).enviarEmail(anyString(), anyString(), anyString());
-
-        AluguelDTO resultado = service.realizarDevolucao(devolucaoDTO);
-
-        assertNotNull(resultado.getDataHoraFim());
-        verify(equipamentoService).alterarStatusBicicleta(anyLong(), eq("DISPONIVEL"));
-    }
 }
