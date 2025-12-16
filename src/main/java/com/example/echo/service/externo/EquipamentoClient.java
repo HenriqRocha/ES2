@@ -4,14 +4,18 @@ import com.example.echo.dto.BicicletaDTO;
 import com.example.echo.dto.externo.TrancaDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
 public class EquipamentoClient {
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
+
+    public EquipamentoClient(RestTemplateBuilder builder) {
+        this.restTemplate = builder.build();
+    }
 
     @Value("${api.equipamento.url}")
     private String urlBase;
