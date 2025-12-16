@@ -6,6 +6,7 @@ import com.example.echo.model.Ciclista;
 import com.example.echo.model.Nacionalidade;
 import com.example.echo.repository.CiclistaRepository;
 import com.example.echo.service.EmailService;
+import com.example.echo.service.externo.EquipamentoClient;
 import com.example.echo.service.externo.ExternoClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,9 @@ class CiclistaIntegrationTest {
 
     @MockBean
     private ExternoClient externoClient; // Mock para não chamar API externa
+
+    @MockBean
+    private EquipamentoClient equipamentoClient;
 
     @BeforeEach
     void setup() {
