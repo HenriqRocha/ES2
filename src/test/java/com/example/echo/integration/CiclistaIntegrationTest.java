@@ -1,5 +1,6 @@
 package com.example.echo.integration;
 
+import com.example.echo.dto.CartaoDeCreditoDTO;
 import com.example.echo.dto.CiclistaDTO;
 import com.example.echo.dto.CiclistaPostDTO;
 import com.example.echo.model.Ciclista;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import java.time.LocalDate;
 
@@ -57,22 +59,39 @@ class CiclistaIntegrationTest {
     @Test
     @DisplayName("INTEGRAÇÃO: Deve cadastrar ciclista com sucesso")
     void deveCadastrarCiclista() throws Exception {
+        // 1. Preparar o DTO do Cartão (Obrigatório segundo seu DTO)
+        CartaoDeCreditoDTO cartao = new CartaoDeCreditoDTO();
+        cartao.setNomeTitular("Titular Teste");
+        cartao.setNumero("1234567890123456");
+        cartao.setValidade(LocalDate.of(2030, 1, 1)); // Ou string "10/2030" dependendo do seu DTO de cartão
+        cartao.setCvv("123");
+
+        // 2. Preparar o Ciclista com os dados exatos do CiclistaPostDTO
         CiclistaPostDTO novoCiclista = new CiclistaPostDTO();
         novoCiclista.setNome("Novo User");
         novoCiclista.setEmail("novo@teste.com");
+
+        // CORREÇÃO 1: Nacionalidade via Enum (se o seu DTO usa Enum)
+        // Se der erro de compilação aqui, use string: novoCiclista.setNacionalidade("BRASILEIRO");
         novoCiclista.setNacionalidade(Nacionalidade.BRASILEIRO);
+
         novoCiclista.setNascimento(LocalDate.of(1995, 5, 5));
 
-        // CORREÇÃO 1: CPF válido (gerado) e Senha forte/confirmada
-        novoCiclista.setCpf("92626464083");
+        // CORREÇÃO 2: CPF SEM PONTUAÇÃO (apenas 11 dígitos, conforme o regex ^[0-9]{11}$)
+        novoCiclista.setCpf("52606552010");
+
         novoCiclista.setSenha("SenhaForte123");
         novoCiclista.setConfirmacaoSenha("SenhaForte123");
         novoCiclista.setUrlFotoDocumento("http://url.com/foto.png");
 
+        // CORREÇÃO 3: Adicionando o cartão obrigatório
+        novoCiclista.setMeioDePagamento(cartao);
+
         mockMvc.perform(post("/ciclista")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(novoCiclista)))
-                .andExpect(status().isCreated()) // Espera 201
+                .andDo(MockMvcResultHandlers.print()) // Mostra o erro se falhar
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nome").value("Novo User"));
     }
 
