@@ -1,37 +1,76 @@
 package com.example.echo.service;
 
 import com.example.echo.dto.BicicletaDTO;
+import com.example.echo.dto.externo.TrancaDTO;
+import com.example.echo.exception.DadosInvalidosException;
+import com.example.echo.exception.RecursoNaoEncontradoException;
+import com.example.echo.service.externo.EquipamentoClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EquipamentoService {
 
-    public BicicletaDTO buscarBicicletaNaTranca(Long idTranca) {
-        if (idTranca == 999L) {
-            return null; //E2 Simula tranca vazia
-        }
-        if (idTranca == 888L) {
-            //E4 Simula bicicleta com defeito
-            return new BicicletaDTO(200L, "EM_REPARO");
-        }
+    @Autowired
+    private EquipamentoClient equipamentoClient;
 
-        //Sucesso
-        return new BicicletaDTO(100L, "DISPONIVEL");
+    // A1 e UC01: Verifica se tem bicicleta na tranca e retorna os dados dela
+    public BicicletaDTO buscarBicicletaNaTranca(Long idTranca) {
+        try {
+            // 1. Pergunta para o equipamento o que tem na tranca
+            TrancaDTO tranca = equipamentoClient.buscarTranca(idTranca);
+
+            // 2. Se a tranca não existe ou não tem bicicleta presa
+            if (tranca == null || tranca.getBicicleta() == null) {
+                return null; // Tranca vazia
+            }
+
+            // 3. Se tem bicicleta, busca os detalhes dela (para ver se está EM_REPARO, etc)
+            return equipamentoClient.buscarBicicleta(tranca.getBicicleta());
+
+        } catch (Exception e) {
+            // Se a tranca não for encontrada na API externa (404) ou erro de rede
+            System.err.println("Erro ao buscar tranca: " + e.getMessage());
+            throw new RecursoNaoEncontradoException("Tranca não encontrada ou serviço indisponível.");
+        }
     }
 
+    // UC01: Destranca a bicicleta para o ciclista pegar
     public boolean destrancarTranca(Long idTranca) {
-        //E5 Simula que a tranca 777 está emperrada
-        if (idTranca == 777L) {
+        try {
+            // Precisamos saber qual bicicleta está lá para destrancar corretamente
+            TrancaDTO tranca = equipamentoClient.buscarTranca(idTranca);
+
+            if (tranca != null && tranca.getBicicleta() != null) {
+                // Chama a API externa para liberar a trava
+                equipamentoClient.destrancarTranca(idTranca, tranca.getBicicleta());
+                return true;
+            }
+            return false; // Não tem bicicleta para destrancar
+
+        } catch (Exception e) {
+            System.err.println("Erro ao destrancar: " + e.getMessage());
             return false;
         }
-        return true; //Sucesso
     }
 
+    // Usado na Devolução para mudar status para DISPONIVEL ou EM_REPARO
     public void alterarStatusBicicleta(Long idBicicleta, String novoStatus) {
-        System.out.println("MOCK: Bicicleta " + idBicicleta + " status alterado para " + novoStatus);
+        try {
+            equipamentoClient.alterarStatusBicicleta(idBicicleta, novoStatus);
+        } catch (Exception e) {
+            System.err.println("Erro ao alterar status da bike: " + e.getMessage());
+            throw new DadosInvalidosException("Erro ao atualizar bicicleta no equipamento.");
+        }
     }
 
-    public void trancarTranca(Long idTranca) {
-        System.out.println("MOCK: Tranca " + idTranca + " fechada (ocupada).");
+    // [IMPORTANTE] Atualizei a assinatura para receber o ID da Bicicleta também
+    public void trancarTranca(Long idTranca, Long idBicicleta) {
+        try {
+            equipamentoClient.trancarTranca(idTranca, idBicicleta);
+        } catch (Exception e) {
+            System.err.println("Erro ao trancar tranca " + idTranca + ": " + e.getMessage());
+            throw new DadosInvalidosException("Falha ao travar a tranca na devolução.");
+        }
     }
 }

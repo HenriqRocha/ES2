@@ -4,6 +4,7 @@ import com.example.echo.dto.AluguelDTO;
 import com.example.echo.dto.BicicletaDTO;
 import com.example.echo.dto.NovoAluguelDTO;
 import com.example.echo.dto.DevolucaoDTO;
+import com.example.echo.dto.externo.CobrancaDTO;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.exception.RecursoNaoEncontradoException;
 import com.example.echo.model.Aluguel;
@@ -11,6 +12,7 @@ import com.example.echo.model.Ciclista;
 import com.example.echo.model.StatusCiclista;
 import com.example.echo.repository.AluguelRepository;
 import com.example.echo.repository.CiclistaRepository;
+import com.example.echo.service.externo.ExternoClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,11 +31,13 @@ public class AluguelService {
     @Autowired
     private EmailService emailService;
 
+    //serviços externos
+    @Autowired
+    private ExternoClient externoClient;
+
     //serviços falsos
     @Autowired
     private EquipamentoService equipamentoService;
-    @Autowired
-    private CobrancaService cobrancaService;
 
     private static final Double CUSTO_INICIAL = 10.00;
 
@@ -66,16 +70,12 @@ public class AluguelService {
             throw new DadosInvalidosException("A bicicleta escolhida está em reparo.");
         }
 
-        //cobrança
-        boolean pago = cobrancaService.autorizarPagamento(ciclista.getCartaoDeCredito().getNumero(), CUSTO_INICIAL);
-
-        Long idCobranca; //vai vir de serviço externo
-        if (!pago) {
-            //E3
-            cobrancaService.registrarCobrancaPendente(ciclista.getId(), CUSTO_INICIAL);
-            throw new DadosInvalidosException("Pagamento não autorizado.");
-        } else {
-            idCobranca = System.currentTimeMillis(); //id falso
+        CobrancaDTO cobrancaConfirmada = null;
+        try {
+            cobrancaConfirmada = externoClient.realizarCobranca(CUSTO_INICIAL, dto.getCiclistaId());
+        } catch (Exception e) {
+            // Se a API externa cair ou recusar, lançamos erro e interrompemos o aluguel
+            throw new DadosInvalidosException("Falha ao processar pagamento inicial: " + e.getMessage());
         }
 
         //destranca
@@ -90,8 +90,8 @@ public class AluguelService {
         aluguel.setCiclista(ciclista);
         aluguel.setBicicleta(bicicleta.getId());
         aluguel.setTrancaInicio(dto.getTrancaInicioId());
-        aluguel.setCobranca(idCobranca);
         aluguel.setHoraInicio(LocalDateTime.now());
+        aluguel.setCobranca(cobrancaConfirmada.getId());
 
         Aluguel salvo = aluguelRepository.save(aluguel);
 
@@ -126,14 +126,32 @@ public class AluguelService {
 
         //cobra o extra
         if (custoExtra > 0) {
-            boolean pagamentoAprovado = cobrancaService.autorizarPagamento(
-                    aluguel.getCiclista().getCartaoDeCredito().getNumero(),
-                    custoExtra
-            );
+            try {
+                // TENTATIVA 1: Cobrança Direta
+                CobrancaDTO cobrancaRealizada = externoClient.realizarCobranca(custoExtra, dto.getCiclistaId());
+                aluguel.setCobranca(cobrancaRealizada.getId());
 
-            if (!pagamentoAprovado) {
-                //cobrança pendente
-                cobrancaService.registrarCobrancaPendente(aluguel.getCiclista().getId(), custoExtra);
+            } catch (Exception e) {
+                System.err.println("Falha na cobrança direta: " + e.getMessage());
+                System.out.println("Tentando enviar para a fila de cobranças...");
+
+                try {
+                    // TENTATIVA 2: Enviar para a Fila (Fallback)
+                    CobrancaDTO cobrancaFila = new CobrancaDTO();
+                    cobrancaFila.setValor(custoExtra);
+                    cobrancaFila.setCiclista(dto.getCiclistaId());
+
+                    externoClient.adicionarCobrancaNaFila(cobrancaFila);
+
+                    // Nota: Na fila, talvez não tenhamos o ID imediato, então o campo 'cobranca'
+                    // no aluguel pode ficar nulo ou você pode criar um log.
+
+                } catch (Exception exFila) {
+                    // ÚLTIMO CASO: Tudo falhou.
+                    // Apenas logamos o erro Crítico, mas deixamos o código seguir para devolver a bike.
+                    // Na vida real, salvaríamos isso numa tabela de "Pendências" local.
+                    System.err.println("CRÍTICO: Falha total na cobrança (Direta e Fila). O valor extra não foi cobrado.");
+                }
             }
         }
 
@@ -147,7 +165,7 @@ public class AluguelService {
         //Chama serviço externo de equipamento falso
         equipamentoService.alterarStatusBicicleta(aluguel.getBicicleta(), novoStatusBike);
 
-        equipamentoService.trancarTranca(dto.getTrancaFimId());
+        equipamentoService.trancarTranca(dto.getTrancaFimId(), aluguel.getBicicleta());
 
         //salva
         Aluguel salvo = aluguelRepository.save(aluguel);

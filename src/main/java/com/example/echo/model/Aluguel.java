@@ -32,7 +32,7 @@ public class Aluguel {
     private Long trancaFim;
 
     //externo
-    @Column(nullable = false)
+    @Column
     private Long cobranca;
 
     @Column(nullable = false)

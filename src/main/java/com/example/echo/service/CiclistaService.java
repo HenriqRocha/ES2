@@ -1,6 +1,7 @@
 package com.example.echo.service;
 
 import com.example.echo.dto.*;
+import com.example.echo.dto.externo.CartaoExternoDTO;
 import com.example.echo.model.CartaoDeCredito;
 import com.example.echo.model.Ciclista;
 import com.example.echo.model.Nacionalidade;
@@ -12,6 +13,7 @@ import com.example.echo.exception.RecursoNaoEncontradoException;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.repository.AluguelRepository;
 import com.example.echo.repository.CiclistaRepository;
+import com.example.echo.service.externo.ExternoClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,10 +34,10 @@ public class CiclistaService {
     private CiclistaMapper ciclistaMapper;//tradutor
 
     @Autowired
-    private ValidacaoCartaoService validacaoCartaoService;//api falsa
+    private EmailService emailService;
 
     @Autowired
-    private EmailService emailService;//api falsa
+    private ExternoClient externoClient;
 
     //regex para validar formato de email R3 e poder retornar 422
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -61,11 +63,15 @@ public class CiclistaService {
             throw new DadosInvalidosException("CPF já cadastrado.");
         }
 
-        //validação cartão
-        boolean cartaoValido = validacaoCartaoService.validarCartao(dto.getMeioDePagamento());
-        if (!cartaoValido){
-            throw new DadosInvalidosException("Cartão de crédito reprovado.");
-        }
+        CartaoDeCreditoDTO cartaoInterno = dto.getMeioDePagamento();
+        CartaoExternoDTO cartaoParaValidar = new CartaoExternoDTO(
+                cartaoInterno.getNomeTitular(),
+                cartaoInterno.getNumero(),
+                cartaoInterno.getValidade().toString(),
+                cartaoInterno.getCvv()
+        );
+
+        boolean cartaoValido = externoClient.validarCartao(cartaoParaValidar);
 
         //tradução dto para entidade
         Ciclista ciclista = ciclistaMapper.toEntity(dto);
@@ -197,8 +203,15 @@ public class CiclistaService {
         Ciclista ciclista = repository.findById(idCiclista)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Ciclista não encontrado"));
 
-        //valida
-        boolean cartaoValido = validacaoCartaoService.validarCartao(novoCartao);
+        CartaoExternoDTO cartaoParaValidar = new CartaoExternoDTO(
+                novoCartao.getNomeTitular(),
+                novoCartao.getNumero(),
+                novoCartao.getValidade().toString(), // Converte Data para String
+                novoCartao.getCvv()
+        );
+
+        boolean cartaoValido = externoClient.validarCartao(cartaoParaValidar);
+
         if (!cartaoValido) {
             throw new DadosInvalidosException("O cartão de crédito foi reprovado pela operadora.");
         }
