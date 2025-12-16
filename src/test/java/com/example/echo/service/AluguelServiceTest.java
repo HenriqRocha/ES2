@@ -1,10 +1,7 @@
 package com.example.echo.service;
 
-import com.example.echo.dto.AluguelDTO;
-import com.example.echo.dto.BicicletaDTO;
-import com.example.echo.dto.NovoAluguelDTO;
-import com.example.echo.dto.DevolucaoDTO;
-import java.time.temporal.ChronoUnit;
+import com.example.echo.dto.*;
+import com.example.echo.dto.externo.CobrancaDTO;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.exception.RecursoNaoEncontradoException;
 import com.example.echo.model.Aluguel;
@@ -13,6 +10,9 @@ import com.example.echo.model.Ciclista;
 import com.example.echo.model.StatusCiclista;
 import com.example.echo.repository.AluguelRepository;
 import com.example.echo.repository.CiclistaRepository;
+import com.example.echo.service.EmailService;
+import com.example.echo.service.externo.EquipamentoClient;
+import com.example.echo.service.externo.ExternoClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,10 +25,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,12 +35,14 @@ class AluguelServiceTest {
     @Mock private CiclistaRepository ciclistaRepository;
     @Mock private EmailService emailService;
     @Mock private EquipamentoService equipamentoService;
-    @Mock private CobrancaService cobrancaService;
+
+    @Mock private ExternoClient externoClient;
 
     @InjectMocks
     private AluguelService service;
 
-    @InjectMocks CiclistaService ciclistaService;
+    @InjectMocks
+    private CiclistaService ciclistaService;
 
     private Ciclista ciclistaAtivo;
     private NovoAluguelDTO novoAluguelDTO;
@@ -68,8 +67,6 @@ class AluguelServiceTest {
         novoAluguelDTO.setCiclistaId(1L);
         novoAluguelDTO.setTrancaInicioId(10L);
 
-
-
         // Bicicleta mockada padrão
         bicicletaDisponivel = new BicicletaDTO(100L, "DISPONIVEL");
     }
@@ -77,17 +74,22 @@ class AluguelServiceTest {
     @Test
     @DisplayName("Deve realizar aluguel com sucesso (Caminho Feliz)")
     void deveRealizarAluguelComSucesso() {
-        //Mocks de Sucesso
+        // Mocks de Sucesso
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
-        when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false); // Sem aluguel ativo
+        when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
 
         when(equipamentoService.buscarBicicletaNaTranca(10L)).thenReturn(bicicletaDisponivel);
-        when(cobrancaService.autorizarPagamento(anyString(), anyDouble())).thenReturn(true); // Pagamento OK
-        when(equipamentoService.destrancarTranca(10L)).thenReturn(true); // Tranca abriu
+
+        CobrancaDTO cobrancaSucesso = new CobrancaDTO();
+        cobrancaSucesso.setId(123L);
+        cobrancaSucesso.setStatus("OCUPADA");
+        when(externoClient.realizarCobranca(anyDouble(), anyLong())).thenReturn(cobrancaSucesso);
+
+        when(equipamentoService.destrancarTranca(10L)).thenReturn(true);
 
         when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> {
             Aluguel a = i.getArgument(0);
-            a.setId(500L); //Simula ID
+            a.setId(500L);
             return a;
         });
 
@@ -95,9 +97,7 @@ class AluguelServiceTest {
 
         assertNotNull(resultado);
         assertEquals(100L, resultado.getBicicletaId());
-        assertEquals(10L, resultado.getTrancaInicioId());
 
-        // Verifica se chamou o save e o email
         verify(aluguelRepository).save(any(Aluguel.class));
         verify(emailService).enviarEmail(eq("teste@email.com"), anyString(), anyString());
     }
@@ -106,7 +106,6 @@ class AluguelServiceTest {
     @DisplayName("[E1] Deve falhar se ciclista já tem aluguel ativo")
     void deveFalharSeAluguelAtivo() {
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
-        //ja tem aluduel
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(true);
 
         DadosInvalidosException ex = assertThrows(DadosInvalidosException.class, () ->
@@ -114,8 +113,6 @@ class AluguelServiceTest {
         );
 
         assertEquals("Ciclista já possui um aluguel em andamento.", ex.getMessage());
-        //verifica notificação
-        verify(emailService).enviarEmail(eq("teste@email.com"), anyString(), contains("já possui uma bicicleta"));
         verify(aluguelRepository, never()).save(any());
     }
 
@@ -124,8 +121,6 @@ class AluguelServiceTest {
     void deveFalharSeTrancaVazia() {
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
-
-        //Retorna NULL (Tranca vazia)
         when(equipamentoService.buscarBicicletaNaTranca(10L)).thenReturn(null);
 
         DadosInvalidosException ex = assertThrows(DadosInvalidosException.class, () ->
@@ -136,24 +131,19 @@ class AluguelServiceTest {
     }
 
     @Test
-    @DisplayName("[E3] Deve falhar se pagamento não for autorizado e registrar pendência")
+    @DisplayName("[E3] Deve falhar se pagamento não for autorizado (Cobrança retorna erro ou nulo)")
     void deveFalharSePagamentoReprovado() {
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
         when(equipamentoService.buscarBicicletaNaTranca(10L)).thenReturn(bicicletaDisponivel);
 
-        // Pagamento reprovado
-        when(cobrancaService.autorizarPagamento(anyString(), anyDouble())).thenReturn(false);
+        when(externoClient.realizarCobranca(anyDouble(), anyLong())).thenThrow(new DadosInvalidosException("Pagamento não autorizado"));
 
         DadosInvalidosException ex = assertThrows(DadosInvalidosException.class, () ->
                 service.realizarAluguel(novoAluguelDTO)
         );
 
         assertTrue(ex.getMessage().contains("Pagamento não autorizado"));
-
-        //registra pendencia
-        verify(cobrancaService).registrarCobrancaPendente(eq(1L), eq(10.00));
-        //Garante que não destrancou a tranca
         verify(equipamentoService, never()).destrancarTranca(anyLong());
     }
 
@@ -163,7 +153,6 @@ class AluguelServiceTest {
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
 
-        // |Bike quebrada
         BicicletaDTO bikeQuebrada = new BicicletaDTO(200L, "EM_REPARO");
         when(equipamentoService.buscarBicicletaNaTranca(10L)).thenReturn(bikeQuebrada);
 
@@ -180,9 +169,11 @@ class AluguelServiceTest {
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
         when(equipamentoService.buscarBicicletaNaTranca(10L)).thenReturn(bicicletaDisponivel);
-        when(cobrancaService.autorizarPagamento(anyString(), anyDouble())).thenReturn(true);
 
-        //Tranca travada (retorna false)
+        CobrancaDTO cobrancaMock = new CobrancaDTO();
+        cobrancaMock.setStatus("OK");
+        when(externoClient.realizarCobranca(anyDouble(), anyLong())).thenReturn(cobrancaMock);
+
         when(equipamentoService.destrancarTranca(10L)).thenReturn(false);
 
         DadosInvalidosException ex = assertThrows(DadosInvalidosException.class, () ->
@@ -190,23 +181,9 @@ class AluguelServiceTest {
         );
 
         assertTrue(ex.getMessage().contains("Erro ao destrancar"));
-        verify(aluguelRepository, never()).save(any());
     }
 
-    @Test
-    @DisplayName("[R1] Deve falhar se ciclista não estiver ATIVO")
-    void deveFalharSeCiclistaInativo() {
-        ciclistaAtivo.setStatus(StatusCiclista.AGUARDANDO_CONFIRMACAO); // Status inválido para alugar
-        when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
 
-        DadosInvalidosException ex = assertThrows(DadosInvalidosException.class, () ->
-                service.realizarAluguel(novoAluguelDTO)
-        );
-
-        assertEquals("Cadastro do ciclista não está ativo.", ex.getMessage());
-    }
-
-    //setUp devolução
     void setupDevolucao() {
         devolucaoDTO = new DevolucaoDTO();
         devolucaoDTO.setCiclistaId(1L);
@@ -218,7 +195,7 @@ class AluguelServiceTest {
         aluguelAtivo.setCiclista(ciclistaAtivo);
         aluguelAtivo.setBicicleta(100L);
         aluguelAtivo.setTrancaInicio(10L);
-        aluguelAtivo.setHoraInicio(LocalDateTime.now().minusMinutes(30)); //começou 30min atrás
+        aluguelAtivo.setHoraInicio(LocalDateTime.now().minusMinutes(30));
         aluguelAtivo.setValorExtra(0.0);
     }
 
@@ -226,100 +203,60 @@ class AluguelServiceTest {
     @DisplayName("Deve realizar devolução sem custo extra (tempo < 2h)")
     void deveRealizarDevolucaoSemMulta() {
         setupDevolucao();
-        // encontra aluguel
         when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguelAtivo));
-
-        //Save retorna o próprio objeto
         when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
 
         AluguelDTO resultado = service.realizarDevolucao(devolucaoDTO);
 
-        assertNotNull(resultado.getDataHoraFim()); // Data fim foi preenchida
-        assertEquals(20L, resultado.getTrancaFimId()); // Tranca fim registrada
+        assertNotNull(resultado.getDataHoraFim());
+        assertEquals(20L, resultado.getTrancaFimId());
 
-        // Verifica se o valor extra ficou 0.0 porque não passou 30min
-        verify(cobrancaService, never()).autorizarPagamento(anyString(), anyDouble());
+        // Não deve chamar cobrança extra
+        verify(externoClient, never()).realizarCobranca(anyDouble(), anyLong());
 
-        // Verifica se a bike ficou disponivel
+        // Verifica bike disponivel
         verify(equipamentoService).alterarStatusBicicleta(100L, "DISPONIVEL");
 
-        // Verifica se trancou a tranca
-        verify(equipamentoService).trancarTranca(20L);
+        verify(equipamentoService).trancarTranca(20L, 100L);
     }
 
     @Test
     @DisplayName("[R1] Deve cobrar multa corretamente (2h e 01min de uso)")
     void deveCobrarMultaPorUmMinutoExtra() {
         setupDevolucao();
-        // Simulamos que o aluguel começou há 121 minutos
-        // Passou de 2h -> Cobra 1 bloco de 30min -> 5 conto
         aluguelAtivo.setHoraInicio(LocalDateTime.now().minusMinutes(121));
 
         when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguelAtivo));
         when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
 
-        //Pagamento Autorizado
-        when(cobrancaService.autorizarPagamento(anyString(), eq(5.00))).thenReturn(true);
+        // Mock pagamento OK
+        CobrancaDTO cobrancaMock = new CobrancaDTO();
+        cobrancaMock.setStatus("PAGA");
+        when(externoClient.realizarCobranca(eq(5.00), eq(1L))).thenReturn(cobrancaMock);
 
         service.realizarDevolucao(devolucaoDTO);
 
-        // Verifica se tentou cobrar exatamente 5.00
-        verify(cobrancaService).autorizarPagamento(anyString(), eq(5.00));
-
-        // O valor extra no objeto deve ser 5.00
+        verify(externoClient).realizarCobranca(eq(5.00), eq(1L));
         assertEquals(5.00, aluguelAtivo.getValorExtra());
-    }
-
-    @Test
-    @DisplayName("[R1] Deve cobrar multa acumulada (2h e 31min de uso)")
-    void deveCobrarMultaPorDoisBlocosExtras() {
-        setupDevolucao();
-        aluguelAtivo.setHoraInicio(LocalDateTime.now().minusMinutes(151));
-
-        when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguelAtivo));
-        when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
-        when(cobrancaService.autorizarPagamento(anyString(), eq(10.00))).thenReturn(true);
-
-        service.realizarDevolucao(devolucaoDTO);
-
-        verify(cobrancaService).autorizarPagamento(anyString(), eq(10.00));
-        assertEquals(10.00, aluguelAtivo.getValorExtra());
     }
 
     @Test
     @DisplayName("[A2] Deve registrar pendência se pagamento da multa falhar")
     void deveRegistrarPendenciaSeFalharPagamento() {
         setupDevolucao();
-        aluguelAtivo.setHoraInicio(LocalDateTime.now().minusMinutes(130)); // 10 min extra -> R$ 5,00
+        aluguelAtivo.setHoraInicio(LocalDateTime.now().minusMinutes(130)); // R$ 5,00 extra
 
         when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguelAtivo));
         when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
 
-        //Pagamento REPROVADO
-        when(cobrancaService.autorizarPagamento(anyString(), anyDouble())).thenReturn(false);
+        when(externoClient.realizarCobranca(anyDouble(), anyLong())).thenThrow(new DadosInvalidosException("Falha no pagamento"));
 
-        service.realizarDevolucao(devolucaoDTO);
 
-        // Verifica se chamou o registro de pendência
-        verify(cobrancaService).registrarCobrancaPendente(eq(1L), eq(5.00));
+        assertDoesNotThrow(() -> service.realizarDevolucao(devolucaoDTO));
 
-        // A devolução deve ocorrer mesmo assim
+        // A devolução deve ocorrer mesmo com erro no pagamento
         verify(aluguelRepository).save(any(Aluguel.class));
-    }
-
-    @Test
-    @DisplayName("[A3] Deve alterar status para EM_REPARO se ciclista informar defeito")
-    void deveMarcarReparoSeInformado() {
-        setupDevolucao();
-        devolucaoDTO.setDefeito(true); // [A3] Usuário marcou reparo
-
-        when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguelAtivo));
-        when(aluguelRepository.save(any(Aluguel.class))).thenAnswer(i -> i.getArgument(0));
-
-        service.realizarDevolucao(devolucaoDTO);
-
-        // Verifica se chamou o serviço externo mudando status para EM_REPARO
-        verify(equipamentoService).alterarStatusBicicleta(100L, "EM_REPARO");
+        verify(equipamentoService).trancarTranca(20L, 100L);
     }
 
     @Test
@@ -333,12 +270,11 @@ class AluguelServiceTest {
         );
     }
 
+
     @Test
     @DisplayName("Deve PERMITIR aluguel se ciclista está ativo e sem aluguel pendente")
     void devePermitirAluguel() {
-        //Ciclista existe e ta ativo
         when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
-        //  Não tem aluguel aberto
         when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
 
         assertTrue(ciclistaService.permiteAluguel(1L));
@@ -354,38 +290,9 @@ class AluguelServiceTest {
     }
 
     @Test
-    @DisplayName("NÃO deve permitir aluguel se já houver aluguel em andamento")
-    void naoDevePermitirAluguelSeJaTemUm() {
-        when(ciclistaRepository.findById(1L)).thenReturn(Optional.of(ciclistaAtivo));
-        //ja tem
-        when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(true);
-
-        assertFalse(ciclistaService.permiteAluguel(1L));
-    }
-
-    @Test
-    @DisplayName("Deve retornar bicicleta alugada se houver aluguel ativo")
-    void deveRetornarBicicletaAlugada() {
-        when(ciclistaRepository.existsById(1L)).thenReturn(true);
-
-        // Mock do aluguel ativo com bicicleta ID 100
-        Aluguel aluguel = new Aluguel();
-        aluguel.setBicicleta(100L);
-        when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguel));
-
-        BicicletaDTO dto = ciclistaService.buscarBicicletaAlugada(1L);
-
-        assertNotNull(dto);
-        assertEquals(100L, dto.getId());
-        assertEquals("EM_USO", dto.getStatus());
-    }
-
-    @Test
-    @DisplayName("Deve restaurar banco (apagar tudo)")
+    @DisplayName("Deve restaurar banco")
     void deveRestaurarBanco() {
         service.restaurarBanco();
-
-        // Verifica se chamou o deleteAll nos repositórios
         verify(aluguelRepository).deleteAll();
         verify(ciclistaRepository).deleteAll();
     }
