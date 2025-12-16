@@ -326,4 +326,29 @@ class CiclistaServiceTest {
         verify(ciclistaMapper).updateCartaoFromDTO(eq(novoCartao), eq(ciclistaEntidade));
         verify(repository).save(ciclistaEntidade);
     }
+
+    @Test
+    @DisplayName("Deve permitir aluguel se ciclista ATIVO e SEM aluguel pendente")
+    void devePermitirAluguel() {
+        ciclistaEntidade.setStatus(StatusCiclista.ATIVO);
+        when(repository.findById(1L)).thenReturn(Optional.of(ciclistaEntidade));
+        when(aluguelRepository.existsByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(false);
+
+        boolean podeAlugar = service.permiteAluguel(1L);
+
+        assertTrue(podeAlugar);
+    }
+
+    @Test
+    @DisplayName("NÃO deve permitir aluguel se ciclista INATIVO")
+    void naoDevePermitirAluguelSeInativo() {
+        ciclistaEntidade.setStatus(StatusCiclista.AGUARDANDO_CONFIRMACAO);
+        when(repository.findById(1L)).thenReturn(Optional.of(ciclistaEntidade));
+
+        boolean podeAlugar = service.permiteAluguel(1L);
+
+        assertFalse(podeAlugar);
+        // Garante que nem checou o aluguel, pois já falhou no status
+        verify(aluguelRepository, never()).existsByCiclistaIdAndHoraFimIsNull(anyLong());
+    }
 }
