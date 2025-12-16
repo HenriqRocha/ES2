@@ -300,4 +300,30 @@ class CiclistaServiceTest {
         assertEquals("O cartão de crédito foi reprovado pela operadora.", ex.getMessage());
         verify(repository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("Deve alterar cartão com sucesso MESMO se o envio de e-mail falhar")
+    void deveAlterarCartaoMesmoSeEmailFalhar() {
+        Long id = 1L;
+        CartaoDeCreditoDTO novoCartao = new CartaoDeCreditoDTO();
+        novoCartao.setNumero("4444");
+        novoCartao.setNomeTitular("Novo Titular");
+        novoCartao.setValidade(LocalDate.now().plusYears(1));
+        novoCartao.setCvv("123");
+
+        // Mock dos dados
+        when(repository.findById(id)).thenReturn(Optional.of(ciclistaEntidade));
+        when(externoClient.validarCartao(any(CartaoExternoDTO.class))).thenReturn(true);
+        when(repository.save(any(Ciclista.class))).thenReturn(ciclistaEntidade);
+
+        // AQUI: Forçamos o erro no envio de e-mail
+        doThrow(new RuntimeException("Erro SMTP")).when(emailService).enviarEmail(any(), any(), any());
+
+        // O método não deve lançar exceção, pois tem um try-catch engolindo o erro do email
+        assertDoesNotThrow(() -> service.alterarCartao(id, novoCartao));
+
+        // Verifica se o cartão foi salvo mesmo assim
+        verify(ciclistaMapper).updateCartaoFromDTO(eq(novoCartao), eq(ciclistaEntidade));
+        verify(repository).save(ciclistaEntidade);
+    }
 }
