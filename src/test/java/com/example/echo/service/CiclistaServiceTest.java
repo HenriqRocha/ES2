@@ -351,4 +351,129 @@ class CiclistaServiceTest {
         // Garante que nem checou o aluguel, pois já falhou no status
         verify(aluguelRepository, never()).existsByCiclistaIdAndHoraFimIsNull(anyLong());
     }
+
+    @Test
+    @DisplayName("Deve atualizar de Brasileiro para Estrangeiro (Limpa CPF)")
+    void deveMudarParaEstrangeiro() {
+        // Cenário: Era Brasileiro, virou Estrangeiro
+        ciclistaEntidade.setNacionalidade(Nacionalidade.BRASILEIRO);
+        ciclistaEntidade.setCpf("12345678901");
+
+        CiclistaPutDTO putDTO = new CiclistaPutDTO();
+        putDTO.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+        // Supondo que você tenha um PassaporteDTO aninhado
+        // Ajuste conforme seu DTO real (PassaporteDTO ou campos diretos)
+        // Aqui estou simulando a estrutura baseada no seu código: dados.getPassaporte()
+        com.example.echo.dto.PassaporteDTO passaporte = new com.example.echo.dto.PassaporteDTO();
+        passaporte.setNumero("P123456");
+        passaporte.setPais("BR");
+        passaporte.setValidade(LocalDate.now().plusYears(5));
+        putDTO.setPassaporte(passaporte);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(i -> i.getArgument(0));
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        service.atualizarCiclista(1L, putDTO);
+
+        // Verifica se limpou o CPF e setou passaporte
+        assertNull(ciclistaEntidade.getCpf());
+        assertEquals("P123456", ciclistaEntidade.getPassaporteNumero());
+    }
+
+    @Test
+    @DisplayName("Deve atualizar de Estrangeiro para Brasileiro (Limpa Passaporte)")
+    void deveMudarParaBrasileiro() {
+        // Cenário: Era Estrangeiro, virou Brasileiro
+        ciclistaEntidade.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+        ciclistaEntidade.setPassaporteNumero("P123");
+
+        CiclistaPutDTO putDTO = new CiclistaPutDTO();
+        putDTO.setNacionalidade(Nacionalidade.BRASILEIRO);
+        putDTO.setCpf("99999999999");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(i -> i.getArgument(0));
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        service.atualizarCiclista(1L, putDTO);
+
+        // Verifica se limpou passaporte e setou CPF
+        assertNull(ciclistaEntidade.getPassaporteNumero());
+        assertEquals("99999999999", ciclistaEntidade.getCpf());
+    }
+
+    @Test
+    @DisplayName("Deve atualizar apenas dados parciais de Estrangeiro (sem mudar nacionalidade)")
+    void deveAtualizarParcialEstrangeiro() {
+        // Cenário: Já é Estrangeiro, só quer mudar o número do passaporte
+        ciclistaEntidade.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+
+        CiclistaPutDTO putDTO = new CiclistaPutDTO();
+        // Não muda nacionalidade (null)
+        com.example.echo.dto.PassaporteDTO passaporte = new com.example.echo.dto.PassaporteDTO();
+        passaporte.setNumero("NOVO123");
+        putDTO.setPassaporte(passaporte);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(ciclistaEntidade));
+        when(repository.save(any(Ciclista.class))).thenAnswer(i -> i.getArgument(0));
+        when(ciclistaMapper.toDTO(any())).thenReturn(ciclistaDTO);
+
+        service.atualizarCiclista(1L, putDTO);
+
+        assertEquals("NOVO123", ciclistaEntidade.getPassaporteNumero());
+    }
+
+    @Test
+    @DisplayName("Deve recuperar cartão de crédito")
+    void deveBuscarCartao() {
+        // Prepara dados
+        CartaoDeCredito cartao = new CartaoDeCredito();
+        cartao.setNomeTitular("Titular");
+        cartao.setNumero("1234");
+        cartao.setValidade(LocalDate.now());
+        cartao.setCvv("123");
+        ciclistaEntidade.setCartaoDeCredito(cartao);
+
+        when(repository.findById(1L)).thenReturn(Optional.of(ciclistaEntidade));
+
+        CartaoDeCreditoDTO resultado = service.buscarCartao(1L);
+
+        assertNotNull(resultado);
+        assertEquals("Titular", resultado.getNomeTitular());
+    }
+
+    @Test
+    @DisplayName("Deve buscar bicicleta alugada (Retorna DTO)")
+    void deveBuscarBicicletaAlugada() {
+        when(repository.existsById(1L)).thenReturn(true);
+
+        com.example.echo.model.Aluguel aluguel = new com.example.echo.model.Aluguel();
+        aluguel.setBicicleta(50L);
+
+        when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.of(aluguel));
+
+        BicicletaDTO bike = service.buscarBicicletaAlugada(1L);
+
+        assertNotNull(bike);
+        assertEquals(50L, bike.getId());
+    }
+
+    @Test
+    @DisplayName("Deve retornar NULL se não tiver bicicleta alugada")
+    void deveRetornarNullSeSemAluguel() {
+        when(repository.existsById(1L)).thenReturn(true);
+        when(aluguelRepository.findByCiclistaIdAndHoraFimIsNull(1L)).thenReturn(Optional.empty());
+
+        BicicletaDTO bike = service.buscarBicicletaAlugada(1L);
+
+        assertNull(bike);
+    }
+
+    @Test
+    @DisplayName("Deve lançar erro ao buscar bike de ciclista inexistente")
+    void deveFalharBuscaBikeSeCiclistaInexistente() {
+        when(repository.existsById(99L)).thenReturn(false);
+        assertThrows(RecursoNaoEncontradoException.class, () -> service.buscarBicicletaAlugada(99L));
+    }
 }
