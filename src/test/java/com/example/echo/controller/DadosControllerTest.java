@@ -24,7 +24,7 @@ class DadosControllerTest {
     @Test
     @DisplayName("GET /restaurarBanco - Deve retornar 200 OK")
     void deveRestaurarBancoComSucesso() throws Exception {
-        doNothing().when(aluguelService).restaurarBanco();
+        doNothing().when(aluguelService).restaurarDados();
 
         mockMvc.perform(get("/restaurarBanco"))
                 .andExpect(status().isOk());

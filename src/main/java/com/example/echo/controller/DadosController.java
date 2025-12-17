@@ -14,9 +14,9 @@ public class DadosController {
 
 
     //GET /restaurarBanco
-    @GetMapping("/restaurarBanco")
+    @GetMapping("/restaurarDados")
     public ResponseEntity<String> restaurarBanco() {
-        aluguelService.restaurarBanco();
+        aluguelService.restaurarDados();
         return ResponseEntity.ok().body("Banco restaurado");
     }
 }

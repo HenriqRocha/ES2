@@ -7,15 +7,16 @@ import com.example.echo.dto.DevolucaoDTO;
 import com.example.echo.dto.externo.CobrancaDTO;
 import com.example.echo.exception.DadosInvalidosException;
 import com.example.echo.exception.RecursoNaoEncontradoException;
-import com.example.echo.model.Aluguel;
-import com.example.echo.model.Ciclista;
-import com.example.echo.model.StatusCiclista;
+import com.example.echo.model.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.example.echo.repository.AluguelRepository;
 import com.example.echo.repository.CiclistaRepository;
 import com.example.echo.service.externo.ExternoClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 import java.time.LocalDateTime;
@@ -31,11 +32,13 @@ public class AluguelService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     //serviços externos
     @Autowired
     private ExternoClient externoClient;
 
-    //serviços falsos
     @Autowired
     private EquipamentoService equipamentoService;
 
@@ -184,9 +187,108 @@ public class AluguelService {
     }
 
     //
-    public void restaurarBanco() {
-        aluguelRepository.deleteAll();
+    @Transactional
+    public void restaurarDados() {
+        jdbcTemplate.execute("TRUNCATE TABLE tb_aluguel RESTART IDENTITY CASCADE");
 
-        ciclistaRepository.deleteAll();
+        // 2. Depois apaga a tabela principal (Ciclista)
+        jdbcTemplate.execute("TRUNCATE TABLE tb_ciclista RESTART IDENTITY CASCADE");
+
+        // (Se tiver tabela de CartaoDeCredito separada, limpe ela aqui também)
+
+        // ---------------------------------------------------------
+        // 2. RECRIAÇÃO (O Maestro chamando os atores)
+        // ---------------------------------------------------------
+
+        // PRIMEIRO cria os ciclistas (para gerar os IDs 1, 2, 3...)
+        criarCiclistasPadrao();
+
+        // DEPOIS cria o aluguel (pois ele precisa do Ciclista 3 que acabou de ser criado)
+        criarAluguelPadrao();
+    }
+
+    private void criarCiclistasPadrao() {
+        // --- CICLISTA 1 (ATIVO) ---
+        Ciclista c1 = new Ciclista();
+        c1.setStatus(StatusCiclista.ATIVO);
+        c1.setNome("Fulano Beltrano");
+        c1.setNascimento(LocalDate.of(2021, 5, 2));
+        c1.setCpf("78804034009");
+        c1.setNacionalidade(Nacionalidade.BRASILEIRO);
+        c1.setEmail("user@example.com");
+        c1.setSenha("ABC123");
+        c1.setUrlFotoDocumento("http://foto.com/doc.png");
+
+        CartaoDeCredito cartao1 = new CartaoDeCredito();
+        cartao1.setNomeTitular("Fulano Beltrano");
+        cartao1.setNumero("4012001037141112");
+        cartao1.setValidade(LocalDate.of(2022, 12, 1));
+        cartao1.setCvv("132");
+        c1.setCartaoDeCredito(cartao1);
+
+        ciclistaRepository.save(c1);
+
+        // --- CICLISTA 2 (AGUARDANDO CONFIRMAÇÃO) ---
+        Ciclista c2 = new Ciclista();
+        c2.setStatus(StatusCiclista.AGUARDANDO_CONFIRMACAO);
+        c2.setNome("Ciclano de Tal");
+        c2.setNascimento(LocalDate.of(2000, 1, 1));
+        c2.setCpf("43943488039");
+        c2.setNacionalidade(Nacionalidade.BRASILEIRO);
+        c2.setEmail("user2@example.com");
+        c2.setSenha("senha123");
+
+        CartaoDeCredito cartao2 = new CartaoDeCredito();
+        cartao2.setNomeTitular("Ciclano");
+        cartao2.setNumero("1234567812345678");
+        cartao2.setValidade(LocalDate.now().plusYears(1));
+        cartao2.setCvv("111");
+        c2.setCartaoDeCredito(cartao2);
+
+        ciclistaRepository.save(c2);
+
+        // --- CICLISTA 3 (ESTRANGEIRO) ---
+        Ciclista c3 = new Ciclista();
+        c3.setStatus(StatusCiclista.ATIVO);
+        c3.setNome("John Doe");
+        c3.setNascimento(LocalDate.of(1990, 2, 2));
+        c3.setNacionalidade(Nacionalidade.ESTRANGEIRO);
+        c3.setEmail("user3@example.com");
+        c3.setSenha("senha123");
+        c3.setPassaporteNumero("P123456");
+        c3.setPassaportePais("US");
+        c3.setPassaporteValidade(LocalDate.of(2025, 1, 1));
+
+        CartaoDeCredito cartao3 = new CartaoDeCredito();
+        cartao3.setNomeTitular("John Doe");
+        cartao3.setNumero("4444555566667777");
+        cartao3.setValidade(LocalDate.now().plusYears(2));
+        cartao3.setCvv("007");
+        c3.setCartaoDeCredito(cartao3);
+
+        ciclistaRepository.save(c3);
+    }
+
+    private void criarAluguelPadrao() {
+        Ciclista ciclista3 = ciclistaRepository.findById(3L)
+                .orElseThrow(() -> new RuntimeException("Erro ao restaurar: Ciclista 3 não criado"));
+
+        Aluguel aluguel = new Aluguel();
+
+        // AQUI ESTÁ A CORREÇÃO:
+        // Em vez de setCiclistaId(3L), usamos setCiclista(objeto)
+        aluguel.setCiclista(ciclista3);
+
+        // Bicicleta e Tranca geralmente são apenas IDs (Long) se forem de outro microsserviço
+        // Se a sua classe Aluguel pede Objeto Bicicleta, a lógica seria a mesma do Ciclista.
+        // Mas baseado no seu erro, parece que só o Ciclista é entidade local.
+        aluguel.setBicicleta(3L);
+        aluguel.setTrancaInicio(2L);
+        aluguel.setHoraInicio(LocalDateTime.now());
+
+        // Ajuste o status conforme seu Enum (ATIVO, EM_ANDAMENTO, etc)
+        // aluguel.setStatus(StatusAluguel.EM_ANDAMENTO);
+
+        aluguelRepository.save(aluguel);
     }
 }

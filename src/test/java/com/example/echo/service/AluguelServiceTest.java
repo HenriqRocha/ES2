@@ -304,7 +304,7 @@ class AluguelServiceTest {
     @Test
     @DisplayName("Deve restaurar banco")
     void deveRestaurarBanco() {
-        service.restaurarBanco();
+        service.restaurarDados();
         verify(aluguelRepository).deleteAll();
         verify(ciclistaRepository).deleteAll();
     }
