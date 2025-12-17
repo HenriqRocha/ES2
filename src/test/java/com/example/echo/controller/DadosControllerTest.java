@@ -26,7 +26,7 @@ class DadosControllerTest {
     void deveRestaurarBancoComSucesso() throws Exception {
         doNothing().when(aluguelService).restaurarDados();
 
-        mockMvc.perform(get("/restaurarBanco"))
+        mockMvc.perform(get("/restaurarDados"))
                 .andExpect(status().isOk());
     }
 }

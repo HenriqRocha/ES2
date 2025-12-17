@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -35,6 +36,8 @@ class AluguelServiceTest {
     @Mock private CiclistaRepository ciclistaRepository;
     @Mock private EmailService emailService;
     @Mock private EquipamentoService equipamentoService;
+    @Mock
+    private JdbcTemplate jdbcTemplate;
 
     @Mock private ExternoClient externoClient;
 
