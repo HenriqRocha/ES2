@@ -305,10 +305,22 @@ class AluguelServiceTest {
     }
 
     @Test
-    @DisplayName("Deve restaurar banco")
     void deveRestaurarBanco() {
+        // --- 1. PREPARAÇÃO DO CENÁRIO (Mocks) ---
+
+        // Quando o código tentar salvar um ciclista na carga inicial,
+        // fingimos que salvou e retornamos um ciclista vazio (só pra não dar NullPointer)
+        // OBS: Ajuste 'ciclistaRepository' para o nome do mock que você usa (pode ser ciclistaService)
+        lenient().when(ciclistaRepository.save(any())).thenReturn(new Ciclista());
+
+        // Mesma coisa para o aluguel, se ele for salvo via repository
+        lenient().when(aluguelRepository.save(any())).thenReturn(new Aluguel());
+
+        // --- 2. AÇÃO ---
         service.restaurarDados();
-        verify(aluguelRepository).deleteAll();
-        verify(ciclistaRepository).deleteAll();
+
+        // --- 3. VERIFICAÇÃO ---
+        // Verifica se os TRUNCATE foram chamados
+        verify(jdbcTemplate, times(2)).execute(anyString());
     }
 }
