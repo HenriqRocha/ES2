@@ -21,6 +21,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -306,21 +312,32 @@ class AluguelServiceTest {
 
     @Test
     void deveRestaurarBanco() {
-        // --- 1. PREPARAÇÃO DO CENÁRIO (Mocks) ---
+        // --- 1. PREPARAÇÃO (Mocks) ---
 
-        // Quando o código tentar salvar um ciclista na carga inicial,
-        // fingimos que salvou e retornamos um ciclista vazio (só pra não dar NullPointer)
-        // OBS: Ajuste 'ciclistaRepository' para o nome do mock que você usa (pode ser ciclistaService)
-        lenient().when(ciclistaRepository.save(any())).thenReturn(new Ciclista());
+        // a) Ensina o Mock a aceitar o SAVE (para o criarCiclistasPadrao não quebrar)
+        Ciclista ciclistaFake = new Ciclista();
+        ciclistaFake.setId(1L);
+        lenient().when(ciclistaRepository.save(any(Ciclista.class))).thenReturn(ciclistaFake);
 
-        // Mesma coisa para o aluguel, se ele for salvo via repository
-        lenient().when(aluguelRepository.save(any())).thenReturn(new Aluguel());
+        // b) Ensina o Mock a aceitar o SAVE do Aluguel
+        Aluguel aluguelFake = new Aluguel();
+        aluguelFake.setId(1L);
+        lenient().when(aluguelRepository.save(any(Aluguel.class))).thenReturn(aluguelFake);
+
+        // c) A CURA DO ERRO ATUAL: Ensina o Mock a RETORNAR o Ciclista 3 quando procurado
+        Ciclista ciclista3 = new Ciclista();
+        ciclista3.setId(3L);
+        ciclista3.setStatus(StatusCiclista.ATIVO); // Garante que ele está ativo caso o código verifique
+
+        // Se o seu código usa findById(3L):
+        lenient().when(ciclistaRepository.findById(3L)).thenReturn(Optional.of(ciclista3));
+        // OU, se o seu código usa alguma busca genérica, garantimos que sempre volta algo:
+        lenient().when(ciclistaRepository.findById(anyLong())).thenReturn(Optional.of(ciclista3));
 
         // --- 2. AÇÃO ---
         service.restaurarDados();
 
         // --- 3. VERIFICAÇÃO ---
-        // Verifica se os TRUNCATE foram chamados
         verify(jdbcTemplate, times(2)).execute(anyString());
     }
 }
